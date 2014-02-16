@@ -20,5 +20,12 @@ def init_db():
     db.create_all()
 
 
+@manager.command
+def reinit_db():
+    from commitblog import db
+    db.drop_all()
+    db.create_all()
+
+
 if __name__ == '__main__':
     manager.run()
