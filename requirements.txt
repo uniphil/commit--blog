@@ -6,3 +6,6 @@ Flask-Script==0.6.7
 rauth==0.6.2
 venvgit2==0.20.2.1
 gunicorn==18.0
+
+# for production
+psycopg2
