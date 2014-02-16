@@ -77,7 +77,6 @@ def hello():
     return render_template('hello.html')
 
 
-@blog.route('/blog/<blogger>')
 @blog.route('/', subdomain='<blogger>')
 def list(blogger):
     blog_author = Blogger.query.filter_by(username=blogger).first() or abort(404)
