@@ -2,11 +2,22 @@
 
 {% block content %}
   <header>
-    <h1>commit <strong>--blog</strong> <small>Curate the blog you already write</small></h1>
+    <h1>
+      commit <strong>--blog</strong>
+      <small>
+        {% if current_user.is_authenticated() %}
+          hi {{ current_user.username }}:
+          <a title="Manage your blog" href="{{ url_for('blog.list', blogger=current_user.username) }}">curate your blog</a>;
+          <a title="Log out" href="{{ url_for('gh.logout') }}">log out</a>
+        {% else %}
+          Curate the blog you already write
+        {% endif %}
+      </small>
+    </h1>
     
   </header>
 
-  <p>Commit messages. Keeping teams in sync, <a title="Every line of code is always documented" href="http://mislav.uniqpath.com/2014/02/hidden-documentation/">documenting every line of code</a>, recording a history of our struggles and the solutions we find to interesting problems -- <strong>kinda like a blog?</strong></p>
+  <p>Commit messages. Keeping teams in sync, <a class="not-special" title="Every line of code is always documented" href="http://mislav.uniqpath.com/2014/02/hidden-documentation/">documenting every line of code</a>, recording a history of our struggles and the solutions we find to interesting problems -- <strong>kinda like a blog?</strong></p>
 
   <p>Maybe it's a stretch. This website is an experiment. <a href="{{ url_for('gh.login') }}">Sign in with GitHub</a>, pick some commits, and try it out.</p>
 

@@ -13,7 +13,7 @@ from os import environ
 from pygit2 import clone_repository, Repository
 from rauth.service import OAuth2Service
 from flask import (Flask, Blueprint, request, flash, render_template, redirect,
-                   url_for, json)
+                   url_for, json, abort)
 from flask.ext.login import (LoginManager, UserMixin, current_user, login_user,
                              logout_user)
 from flask.ext.sqlalchemy import SQLAlchemy
@@ -22,7 +22,13 @@ from flask.ext.sqlalchemy import SQLAlchemy
 login_manager = LoginManager()
 db = SQLAlchemy()
 pages = Blueprint('pages', __name__)
+blog = Blueprint('blog', __name__)
 gh = Blueprint('gh', __name__)
+
+
+@login_manager.user_loader
+def load_user(blogger_id):
+    return Blogger.query.get(blogger_id)
 
 
 class Blogger(db.Model, UserMixin):
@@ -72,6 +78,14 @@ def hello():
     return render_template('hello.html')
 
 
+@blog.route('/', subdomain='<blogger>')
+@blog.route('/blog/<blogger>')
+def list(blogger):
+    blog_author = Blogger.query.filter_by(username=blogger).first() or abort(404)
+    my_blog = (current_user == blog_author)
+    return render_template('blog-list.html', my_blog=my_blog, blogger=blog_author)
+
+
 @gh.record
 def setup_github(state):
     state.blueprint.api = OAuth2Service(name='github',
@@ -89,6 +103,12 @@ def login():
     return redirect(auth_uri)
 
 
+@gh.route('/logout')
+def logout():
+    logout_user()
+    return redirect(url_for('pages.hello'))
+
+
 @gh.route('/authorized')
 def authorized():
     if 'code' not in request.args:
@@ -97,7 +117,8 @@ def authorized():
     session = gh.api.get_auth_session(data={'code': request.args['code']})
     blogger = Blogger.gh_get_or_create(session)
 
-    return 'hi ' + blogger.name
+    login_user(blogger)
+    return redirect(url_for('blog.list', blogger=blogger.username))
 
 
 def configure(app, config):
@@ -124,5 +145,6 @@ def create_app(config=None):
     login_manager.init_app(app)
     db.init_app(app)
     app.register_blueprint(pages)
+    app.register_blueprint(blog)
     app.register_blueprint(gh, url_prefix='/gh')
     return app
