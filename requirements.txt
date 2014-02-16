@@ -4,7 +4,6 @@ Flask-WTF==0.9.4
 Flask-SQLAlchemy==1.0
 Flask-Script==0.6.7
 rauth==0.6.2
-venvgit2==0.20.2.1
 gunicorn==18.0
 
 # for production

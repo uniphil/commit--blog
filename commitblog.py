@@ -10,7 +10,6 @@
 """
 
 from os import environ
-from pygit2 import clone_repository, Repository
 from rauth.service import OAuth2Service
 from flask import (Flask, Blueprint, request, flash, render_template, redirect,
                    url_for, json, abort)
