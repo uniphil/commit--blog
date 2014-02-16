@@ -12,7 +12,8 @@
 from os import environ
 from pygit2 import clone_repository, Repository
 from rauth.service import OAuth2Service
-from flask import Flask, Blueprint, request, flash, redirect, url_for, json
+from flask import (Flask, Blueprint, request, flash, render_template, redirect,
+                   url_for, json)
 from flask.ext.login import (LoginManager, UserMixin, current_user, login_user,
                              logout_user)
 from flask.ext.sqlalchemy import SQLAlchemy
@@ -68,7 +69,7 @@ class CommitPost(db.Model):
 
 @pages.route('/')
 def hello():
-    return 'eyh'
+    return render_template('hello.html')
 
 
 @gh.record
@@ -83,13 +84,13 @@ def setup_github(state):
 
 
 @gh.route('/login')
-def github_login():
+def login():
     auth_uri = gh.api.get_authorize_url(scope='user,public_repo')
     return redirect(auth_uri)
 
 
 @gh.route('/authorized')
-def github_authorized():
+def authorized():
     if 'code' not in request.args:
         return redirect(url_for('pages.hello', auth='sadface'))
 

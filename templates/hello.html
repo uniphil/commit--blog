@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <header>
+    <h1>commit <strong>--blog</strong> <small>Curate the blog you already write</small></h1>
+    
+  </header>
+
+  <p>Commit messages. Keeping teams in sync, <a title="Every line of code is always documented" href="http://mislav.uniqpath.com/2014/02/hidden-documentation/">documenting every line of code</a>, recording a history of our struggles and the solutions we find to interesting problems -- <strong>kinda like a blog?</strong></p>
+
+  <p>Maybe it's a stretch. This website is an experiment. <a href="{{ url_for('gh.login') }}">Sign in with GitHub</a>, pick some commits, and try it out.</p>
+
+  <h2> get-started</h2>
+  <a href="{{ url_for('gh.login') }}" class="button">Sign in with GitHub</a>
+
+{% endblock %}
