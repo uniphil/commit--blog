@@ -41,7 +41,7 @@ class Blogger(db.Model, UserMixin):
     @classmethod
     def gh_get_or_create(cls, session):
         user_obj = session.get('user').json()
-        user = cls.query.filter_by(gh_id=user_obj['id']).first()
+        user = cls.query.filter_by(gh_id=str(user_obj['id'])).first()
         if user is None:
             user = cls(
                 gh_id=user_obj['id'],
@@ -128,7 +128,7 @@ def configure(app, config):
         DEBUG                   = get('DEBUG') == 'True',
         HOST                    = get('HOST', '127.0.0.1'),
         PORT                    = int(get('PORT', 5000)),
-        SQLALCHEMY_DATABASE_URI = get('SQLALCHEMY_DATABASE_URI', 'sqlite:///db'),
+        SQLALCHEMY_DATABASE_URI = get('DATABASE_URL', 'sqlite:///db'),
         GITHUB_CLIENT_ID        = get('GITHUB_CLIENT_ID'),
         GITHUB_CLIENT_SECRET    = get('GITHUB_CLIENT_SECRET'),
         CSRF_ENABLED            = get('CSRF_ENABLED', True),  # testing ONLY
