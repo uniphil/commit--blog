@@ -13,8 +13,8 @@ from os import environ
 from rauth.service import OAuth2Service
 from flask import (Flask, Blueprint, request, flash, render_template, redirect,
                    url_for, json, abort)
-from flask.ext.login import (LoginManager, UserMixin, current_user, login_user,
-                             logout_user)
+from flask.ext.login import (LoginManager, AnonymousUserMixin, UserMixin,
+                             current_user, login_user, logout_user)
 from flask.ext.sqlalchemy import SQLAlchemy
 
 
@@ -25,9 +25,18 @@ blog = Blueprint('blog', __name__)
 gh = Blueprint('gh', __name__)
 
 
-@login_manager.user_loader
-def load_user(blogger_id):
-    return Blogger.query.get(blogger_id)
+def message_parts(commit_message):
+    parts = commit_message.split('\n', 1)
+    try:
+        return parts[0], parts[1]
+    except IndexError:
+        return parts[0], None
+
+
+class AnonymousUser(AnonymousUserMixin):
+    """Implement convenient methods that are nice to use on current_user"""
+    def is_blogger(self, blogger):
+        return False
 
 
 class Blogger(db.Model, UserMixin):
@@ -54,6 +63,22 @@ class Blogger(db.Model, UserMixin):
             db.session.commit()
         return user
 
+    def is_blogger(self, blogger):
+        return (self == blogger)
+
+    def get_new_events(self):
+        session = gh.api.get_session(token=self.access_token)
+        events = session.get('/users/{0.username}/events/public'.format(self)).json()
+        commit_events = []
+        for event in events:
+            if event['type'] == 'PushEvent':
+                for commit in event['payload']['commits']:
+                    commit.update(repo=event['repo']['name'])
+                    title, body = message_parts(commit['message'])
+                    commit.update(title=title, body=body)
+                    commit_events.append(commit)
+        return commit_events
+
 
 class Repo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -65,11 +90,16 @@ class Repo(db.Model):
 class CommitPost(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     hex = db.Column(db.String(40))
+    message = db.Column(db.String)
+    datetime = db.Column(db.DateTime)
     repo_id = db.Column(db.Integer, db.ForeignKey('repo.id'))
     blogger_id = db.Column(db.Integer, db.ForeignKey('blogger.id'))
 
     repo = db.relationship('Repo')
     blogger = db.relationship('Blogger', backref=db.backref('commit_posts'))
+
+    def get_parts(self):
+        return message_parts(self.message)
 
 
 @pages.route('/')
@@ -80,8 +110,8 @@ def hello():
 @blog.route('/', subdomain='<blogger>')
 def list(blogger):
     blog_author = Blogger.query.filter_by(username=blogger).first() or abort(404)
-    my_blog = (current_user == blog_author)
-    return render_template('blog-list.html', my_blog=my_blog, blogger=blog_author)
+    posts = CommitPost.query.filter_by(blogger=blog_author)
+    return render_template('blog-list.html', posts=posts, blogger=blog_author)
 
 
 @gh.record
@@ -117,6 +147,14 @@ def authorized():
 
     login_user(blogger)
     return redirect(url_for('blog.list', blogger=blogger.username))
+
+
+@login_manager.user_loader
+def load_user(blogger_id):
+    return Blogger.query.get(blogger_id)
+
+
+login_manager.anonymous_user = AnonymousUser
 
 
 def configure(app, config):

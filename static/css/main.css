@@ -34,7 +34,7 @@ a.not-special {
 }
 
 .content {
-  width: 80%;
+  width: 739px;
   margin: 0 auto;
 }
 
@@ -62,4 +62,22 @@ a.button {
 }
 a.button:hover {
   text-decoration: none;
+}
+
+.user-control {
+  font-size: 0.8em;
+  padding-left: 1em;
+  border-left: 3px #468 solid;
+}
+.user-control .button {
+  opacity: 0.3;
+}
+.user-control tr:nth-child(2n) {
+  background: #e6e6e6;
+}
+.user-control tr:hover {
+  background: #d8d8d8;
+}
+.user-control tr:hover .button {
+  opacity: 1;
 }
