@@ -27,5 +27,16 @@ def reinit_db():
     db.create_all()
 
 
+@manager.command
+def list_blogs():
+    from sqlalchemy import func
+    from commitblog import db, Blogger
+    bloggers = Blogger.query \
+                    .order_by(db.session.query(
+                        func.count(Blogger.commit_posts)))
+    for blogger in bloggers.all():
+        print('{: 3d} {}'.format(len(blogger.commit_posts), blogger.username))
+
+
 if __name__ == '__main__':
     manager.run()
