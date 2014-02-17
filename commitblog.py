@@ -11,6 +11,7 @@
 
 from os import environ
 import json
+import dateutil.parser
 from rauth.service import OAuth2Service
 from flask import (Flask, Blueprint, request, flash, render_template, redirect,
                    url_for, json, abort)
@@ -145,7 +146,9 @@ def hello():
 @blog.route('/', subdomain='<blogger>')
 def list(blogger):
     blog_author = Blogger.query.filter_by(username=blogger).first() or abort(404)
-    posts = CommitPost.query.filter_by(blogger=blog_author)
+    posts = CommitPost.query \
+                .filter_by(blogger=blog_author) \
+                .order_by(CommitPost.datetime.desc())
     return render_template('blog-list.html', posts=posts, blogger=blog_author)
 
 
@@ -163,6 +166,7 @@ def add():
         commit = CommitPost(
             hex=form.sha.data,
             message=gh_commit['message'],
+            datetime=dateutil.parser.parse(gh_commit['author']['date']),
             repo=repo,
             blogger=current_user,
         )
@@ -241,6 +245,10 @@ def configure(app, config):
     server_name = get('SERVER_NAME')
     if server_name is not None:
         app.config['SERVER_NAME'] = server_name
+
+    @app.template_filter('nice_date')
+    def nice_date(date, format='%b %d, %Y'):
+        return date.strftime(format) if date else None
 
 
 def create_app(config=None):
