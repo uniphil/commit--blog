@@ -15,12 +15,14 @@
           <tr>
             <td>{{ event.repo }}</td>
             <td>{{ event.title }}</td>
-            <td><a class="button" href="">Blog&nbsp;this</a></td>
+            <td><a class="button" href="{{ url_for('blog.add', repo=event.repo, hex=event.sha) }}">Blog&nbsp;this</a></td>
           </tr>
         {% else %}
           <tr><td colspan="3">No new events :(</td></tr>
         {% endfor %}
       </table>
+
+      <h3>... and here's your blog!</h3>
     </div>
   {% endif %}
 

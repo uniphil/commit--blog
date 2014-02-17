@@ -30,7 +30,7 @@ def message_parts(commit_message):
     try:
         return parts[0], parts[1]
     except IndexError:
-        return parts[0], None
+        return parts[0], ''
 
 
 class AnonymousUser(AnonymousUserMixin):
@@ -66,9 +66,12 @@ class Blogger(db.Model, UserMixin):
     def is_blogger(self, blogger):
         return (self == blogger)
 
+    def get_session(self):
+        return gh.api.get_session(token=self.access_token)
+
     def get_new_events(self):
-        session = gh.api.get_session(token=self.access_token)
-        events = session.get('/users/{0.username}/events/public'.format(self)).json()
+        events_url = '/users/{0.username}/events/public'.format(self)
+        events = self.get_session().get(events_url).json()
         commit_events = []
         for event in events:
             if event['type'] == 'PushEvent':
@@ -101,6 +104,12 @@ class CommitPost(db.Model):
     def get_parts(self):
         return message_parts(self.message)
 
+    def get_title(self):
+        return self.get_parts()[0]
+
+    def get_body(self):
+        return self.get_parts()[1]
+
 
 @pages.route('/')
 def hello():
@@ -112,6 +121,33 @@ def list(blogger):
     blog_author = Blogger.query.filter_by(username=blogger).first() or abort(404)
     posts = CommitPost.query.filter_by(blogger=blog_author)
     return render_template('blog-list.html', posts=posts, blogger=blog_author)
+
+
+@blog.route('/add')
+def add():
+    if current_user.is_anonymous():
+        abort(401)
+    repo = request.args.get('repo')
+    hex = request.args.get('hex')
+    if 'repo' is None or hex is None:
+        abort(400)
+    session = current_user.get_session()
+    commit_url = '/repos/{repo}/git/commits/{hex}'.format(repo=repo, hex=hex)
+    # note: repo here...  ^^  includes the user part.
+    repo_rec = Repo.query.filter_by(name=repo).first()
+    if repo_rec is None:
+        repo_rec = Repo(name=repo)
+        db.session.add(repo_rec)
+    gh_commit = session.get(commit_url).json()
+    commit = CommitPost(
+        hex=hex,
+        message=gh_commit['message'],
+        repo=repo_rec,
+        blogger=current_user,
+    )
+    db.session.add(commit)
+    db.session.commit()
+    return redirect(url_for('blog.list', blogger=current_user.username))
 
 
 @gh.record
