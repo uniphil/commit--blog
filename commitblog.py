@@ -15,8 +15,8 @@ import dateutil.parser
 from rauth.service import OAuth2Service
 from flask import (Flask, Blueprint, request, flash, render_template, redirect,
                    url_for, json, abort)
-from flask.ext.login import (LoginManager, AnonymousUserMixin, UserMixin,
-                             current_user, login_user, logout_user)
+from flask.ext.login import (LoginManager, login_user, logout_user, UserMixin,
+                            AnonymousUserMixin, current_user, login_required)
 from flask.ext.sqlalchemy import SQLAlchemy
 from wtforms import fields, validators
 from flask.ext.wtf import Form
@@ -152,10 +152,9 @@ def list(blogger):
     return render_template('blog-list.html', posts=posts, blogger=blog_author)
 
 
+@login_required
 @blog.route('/add')
 def add():
-    if current_user.is_anonymous():
-        abort(401)
     form = AddCommitForm(request.args)
     if any((form.repo_name.data, form.sha.data)) and form.validate():
         session = current_user.get_session()
@@ -186,10 +185,9 @@ def add():
     return render_template('blog-add.html', form=form)
 
 
+@login_required
 @blog.route('/<path:repo_name>/<hex>/remove')
 def remove(repo_name, hex):
-    if current_user.is_anonymous():
-        abort(401)
     repo = Repo.query.filter_by(full_name=repo_name).first() or abort(404)
     commit = CommitPost.query \
                 .filter_by(blogger=current_user, hex=hex, repo=repo) \
