@@ -95,3 +95,10 @@ code {
   border-radius: 4px;
   color: #468;
 }
+
+.notice {
+  padding: 0.5em 1em;
+  border-left: 3px solid #663;
+  background: #eea;
+  color: #663;
+}
