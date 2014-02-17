@@ -47,15 +47,17 @@ header h1 small {
   font-size: 1rem;
 }
 
-
+button,
 .button {
   display: inline-block;
   padding: 0.2em 0.5em;
   background: #555;
   color: #ccc;
+  border: none;
   border-radius: 3px;
   font-weight: normal;
 }
+button,
 a.button {
   background: #468;
   color: #fff;
@@ -71,7 +73,7 @@ a.button:hover {
 .user-control table {
   font-size: 0.8em;
 }
-.user-control .button {
+.user-control table .button {
   opacity: 0.3;
 }
 .user-control tr:nth-child(2n) {

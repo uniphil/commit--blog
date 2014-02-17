@@ -17,6 +17,9 @@ from flask import (Flask, Blueprint, request, flash, render_template, redirect,
 from flask.ext.login import (LoginManager, AnonymousUserMixin, UserMixin,
                              current_user, login_user, logout_user)
 from flask.ext.sqlalchemy import SQLAlchemy
+from wtforms import fields, validators
+from flask.ext.wtf import Form
+from flask.ext.wtf.csrf import CsrfProtect
 
 
 login_manager = LoginManager()
@@ -79,6 +82,8 @@ class Blogger(db.Model, UserMixin):
                 for commit in event['payload']['commits']:
                     commit.update(repo=event['repo']['name'])
                     title, body = message_parts(commit['message'])
+                    if not body:
+                        continue
                     commit.update(title=title, body=body)
                     commit_events.append(commit)
         return commit_events
@@ -87,8 +92,17 @@ class Blogger(db.Model, UserMixin):
 class Repo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128))
-    full_name = db.Column(db.String(180), unique=True)  # for storage path
+    full_name = db.Column(db.String(180), unique=True)
     description = db.Column(db.String(384))
+
+    @classmethod
+    def get_or_create(cls, repo_name):
+        created = False
+        repo = cls.query.filter_by(full_name=repo_name).first()
+        if repo is None:
+            repo = cls(full_name=repo_name)
+            created = True
+        return repo, created
 
 
 class CommitPost(db.Model):
@@ -116,6 +130,13 @@ class CommitPost(db.Model):
             return self.get_parts()[1]
 
 
+class AddCommitForm(Form):
+    repo_name = fields.TextField('Repository Name',
+                                 validators=[validators.DataRequired()])
+    sha = fields.TextField('Sha-1 Hash',
+                           validators=[validators.Length(min=40, max=40)])
+
+
 @pages.route('/')
 def hello():
     return render_template('hello.html')
@@ -132,36 +153,33 @@ def list(blogger):
 def add():
     if current_user.is_anonymous():
         abort(401)
-    repo = request.args.get('repo')
-    hex = request.args.get('hex')
-    if 'repo' is None or hex is None:
-        abort(400)
-    session = current_user.get_session()
-    commit_url = '/repos/{repo}/git/commits/{hex}'.format(repo=repo, hex=hex)
-    # note: repo here...  ^^  includes the user part.
-    repo_rec = Repo.query.filter_by(name=repo).first()
-    if repo_rec is None:
-        repo_rec = Repo(name=repo)
-        db.session.add(repo_rec)
-    gh_commit = session.get(commit_url).json()
-    commit = CommitPost(
-        hex=hex,
-        message=gh_commit['message'],
-        repo=repo_rec,
-        blogger=current_user,
-    )
-    if commit.get_body():
-        markdown_data = json.dumps(dict(
-            text=commit.get_body(),
-            mode='gfm',
-            context=repo,
-        ))
-        commit.markdown_body=session.post('/markdown', data=markdown_data).text
-    else:
-        commit.markdown_body=''
-    db.session.add(commit)
-    db.session.commit()
-    return redirect(url_for('blog.list', blogger=current_user.username))
+    form = AddCommitForm(request.args)
+    if any((form.repo_name.data, form.sha.data)) and form.validate():
+        session = current_user.get_session()
+        commit_url = '/repos/{repo}/git/commits/{hex}'.format(
+                        repo=form.repo_name.data, hex=form.sha.data)
+        gh_commit = session.get(commit_url).json()
+        repo, repo_created = Repo.get_or_create(form.repo_name.data)
+        commit = CommitPost(
+            hex=form.sha.data,
+            message=gh_commit['message'],
+            repo=repo,
+            blogger=current_user,
+        )
+        if commit.get_body():
+            markdown_data = json.dumps(dict(text=commit.get_body(),
+                                    mode='gfm', context=form.repo_name.data))
+            commit.markdown_body = session.post('/markdown',
+                                    data=markdown_data).text
+        else:
+            commit.markdown_body = ''
+        db.session.add(commit)
+        if repo_created:
+            db.session.add(repo)
+        db.session.commit()
+        return redirect(url_for('blog.list', blogger=current_user.username))
+
+    return render_template('blog-add.html', form=form)
 
 
 @gh.record
@@ -233,4 +251,5 @@ def create_app(config=None):
     app.register_blueprint(pages)
     app.register_blueprint(blog)
     app.register_blueprint(gh, url_prefix='/gh')
+    CsrfProtect(app)
     return app

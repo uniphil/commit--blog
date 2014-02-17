@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+  <h1>commit --blog</h1>
+  
+  <h2>Blog a specific commit</h2>
+  <form method="get" action="">
+    {{ form.csrf_token }}
+    <div>
+      {% for error in form.repo_name.errors %}
+        <p>{{ error }}</p>
+      {% endfor %}
+      {{ form.repo_name.label }}
+      {{ form.repo_name(placeholder='{}/repo-name'.format(current_user.username)) }}
+    </div>
+    <div>
+      {% for error in form.sha.errors %}
+        <p>{{ error }}</p>
+      {% endfor %}
+      {{ form.sha.label }}
+      {{ form.sha }}
+    </div>
+    <div>
+      <button type="submit">Blog it</button>
+    </div>
+  </form>
+
+{% endblock %}
