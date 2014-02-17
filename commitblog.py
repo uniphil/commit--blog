@@ -186,6 +186,19 @@ def add():
     return render_template('blog-add.html', form=form)
 
 
+@blog.route('/<path:repo_name>/<hex>/remove')
+def remove(repo_name, hex):
+    if current_user.is_anonymous():
+        abort(401)
+    repo = Repo.query.filter_by(full_name=repo_name).first() or abort(404)
+    commit = CommitPost.query \
+                .filter_by(blogger=current_user, hex=hex, repo=repo) \
+                .first() or abort(404)
+    db.session.delete(commit)
+    db.session.commit()
+    return redirect(url_for('.list', blogger=current_user.username))
+
+
 @gh.record
 def setup_github(state):
     state.blueprint.api = OAuth2Service(name='github',
