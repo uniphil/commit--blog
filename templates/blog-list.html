@@ -30,7 +30,7 @@
 
     <article>
       <header>
-        <h2>{{ post.get_title() }}</h2>
+        <h2>{{ post.get_title() }} <small> <a href="http://github.com/{{ post.repo.name }}">{{ post.repo.name }}</a></small></h2>
       </header>
       <p>{{ post.get_body(markdown=True)|safe }}</p>
     </article>
