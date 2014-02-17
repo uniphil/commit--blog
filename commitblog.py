@@ -89,6 +89,9 @@ class Blogger(db.Model, UserMixin):
                     commit_events.append(commit)
         return commit_events
 
+    def __repr__(self):
+        return '<Blogger: {}>'.format(self.username)
+
 
 class Repo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -104,6 +107,9 @@ class Repo(db.Model):
             repo = cls(full_name=repo_name)
             created = True
         return repo, created
+
+    def __repr__(self):
+        return '<Repo: {}>'.format(self.full_name)
 
 
 class CommitPost(db.Model):
@@ -129,6 +135,9 @@ class CommitPost(db.Model):
             return self.markdown_body
         else:
             return self.get_parts()[1]
+
+    def __repr__(self):
+        return '<CommitPost: {}...>'.format(self.message[:16])
 
 
 class AddCommitForm(Form):
