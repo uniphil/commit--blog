@@ -32,7 +32,7 @@
       <header>
         <h2>{{ post.get_title() }}</h2>
       </header>
-      <p>{{ post.get_body() }}</p>
+      <p>{{ post.get_body(markdown=True)|safe }}</p>
     </article>
 
   {% else %}

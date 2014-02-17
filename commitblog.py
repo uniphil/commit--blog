@@ -10,6 +10,7 @@
 """
 
 from os import environ
+import json
 from rauth.service import OAuth2Service
 from flask import (Flask, Blueprint, request, flash, render_template, redirect,
                    url_for, json, abort)
@@ -94,6 +95,7 @@ class CommitPost(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     hex = db.Column(db.String(40))
     message = db.Column(db.String)
+    markdown_body = db.Column(db.String)
     datetime = db.Column(db.DateTime)
     repo_id = db.Column(db.Integer, db.ForeignKey('repo.id'))
     blogger_id = db.Column(db.Integer, db.ForeignKey('blogger.id'))
@@ -107,8 +109,11 @@ class CommitPost(db.Model):
     def get_title(self):
         return self.get_parts()[0]
 
-    def get_body(self):
-        return self.get_parts()[1]
+    def get_body(self, markdown=False):
+        if markdown:
+            return self.markdown_body
+        else:
+            return self.get_parts()[1]
 
 
 @pages.route('/')
@@ -145,6 +150,15 @@ def add():
         repo=repo_rec,
         blogger=current_user,
     )
+    if commit.get_body():
+        markdown_data = json.dumps(dict(
+            text=commit.get_body(),
+            mode='gfm',
+            context=repo,
+        ))
+        commit.markdown_body=session.post('/markdown', data=markdown_data).text
+    else:
+        commit.markdown_body=''
     db.session.add(commit)
     db.session.commit()
     return redirect(url_for('blog.list', blogger=current_user.username))
