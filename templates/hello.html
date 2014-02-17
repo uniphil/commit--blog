@@ -22,6 +22,13 @@
   <p>Maybe it's a stretch. This website is an experiment. <a href="{{ url_for('gh.login') }}">Sign in with GitHub</a>, pick some commits, and try it out.</p>
 
   <h2>get-started</h2>
-  <a href="{{ url_for('gh.login') }}" class="button">Sign in with GitHub</a>
+  {% if current_user.is_authenticated() %}
+    <a href="{{ url_for('blog.list', blogger=current_user.username) }}" class="button">To the blog!</a>
+  {% else %}
+    <a href="{{ url_for('gh.login') }}" class="button">Sign in with GitHub</a>
+  {% endif %}
+
+  <h2>help</h2>
+  <p>Running <code>$ git commit</code> (with no <code>-m "message..."</code> cheating) give you a huge free-form text field to work with. If you solve an interesting problem, write an awesome message for its commit (hint: use markdown), and then post it here. Done. Blogged.</p>
 
 {% endblock %}
