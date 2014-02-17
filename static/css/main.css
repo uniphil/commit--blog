@@ -1,6 +1,6 @@
 body {
   background: #f4f4f4;
-  font-family: 'FantasqueSansMono-Regular', monospace;
+  font-family: 'FantasqueSansMono', monospace;
 }
 
 h1,
@@ -65,9 +65,11 @@ a.button:hover {
 }
 
 .user-control {
-  font-size: 0.8em;
   padding-left: 1em;
   border-left: 3px #468 solid;
+}
+.user-control table {
+  font-size: 0.8em;
 }
 .user-control .button {
   opacity: 0.3;
@@ -80,4 +82,14 @@ a.button:hover {
 }
 .user-control tr:hover .button {
   opacity: 1;
+}
+
+code {
+  display: inline-block;
+  padding: 0 0.2em;
+  font-family: 'FantasqueSansMono', monospace;
+  background: #f8f8f8;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  color: #468;
 }
