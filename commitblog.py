@@ -208,7 +208,7 @@ def add():
         if repo_created:
             db.session.add(repo)
         db.session.commit()
-        return redirect(url_for('blog.list', blogger=current_user.username))
+        return redirect(url_for('blog.account'))
 
     return render_template('blog-add.html', form=form)
 

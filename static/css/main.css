@@ -66,23 +66,19 @@ a.button:hover {
   text-decoration: none;
 }
 
-.user-control {
-  padding-left: 1em;
-  border-left: 3px #468 solid;
-}
-.user-control table {
+table.recent-events {
   font-size: 0.8em;
 }
-.user-control table .button {
+table.recent-events .button {
   opacity: 0.3;
 }
-.user-control tr:nth-child(2n) {
+.recent-events tr:nth-child(2n) {
   background: #e6e6e6;
 }
-.user-control tr:hover {
+.recent-events tr:hover {
   background: #d8d8d8;
 }
-.user-control tr:hover .button {
+.recent-events tr:hover .button {
   opacity: 1;
 }
 
