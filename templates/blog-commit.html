@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <article>
+    <header>
+      <h1>{{ post.get_title() }} <small>{{ post.repo.full_name }}</small></h1>
+      <p>
+        {{ post.datetime | nice_date }}
+        {% if current_user.is_blogger(blogger) %}
+          <a href="{{ url_for('blog.remove', repo_name=post.repo.full_name, hex=post.hex) }}">Unpost</a>
+        {% endif %}
+      </p>
+    </header>
+    <p>{{ post.get_body(markdown=True)|safe }}</p>
+  </article>
+  <footer>
+    --<br/>
+    from <a href="{{ url_for('blog.list', blogger=blogger.username) }}">{{ blogger.name or blogger.username }}'s commit --blog</a>
+  </footer>
+{% endblock %}

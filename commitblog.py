@@ -170,6 +170,16 @@ def list(blogger):
     return render_template('blog-list.html', posts=posts, blogger=blog_author)
 
 
+@blog.route('/<path:repo_name>/<hex>', subdomain='<blogger>')
+def commit_post(blogger, repo_name, hex):
+    blog_author = Blogger.query.filter_by(username=blogger).first() or abort(404)
+    repo = Repo.query.filter_by(full_name=repo_name).first() or abort(404)
+    post = CommitPost.query \
+                .filter_by(blogger=blog_author, repo=repo, hex=hex) \
+                .first() or abort(404)
+    return render_template('blog-commit.html', post=post, blogger=blog_author)
+
+
 @blog.route('/add')
 @login_required
 def add():
