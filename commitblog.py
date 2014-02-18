@@ -13,10 +13,10 @@ from os import environ
 import json
 import dateutil.parser
 from rauth.service import OAuth2Service
-from flask import (Flask, Blueprint, request, flash, render_template, redirect,
-                   url_for, json, abort)
+from flask import (Flask, Blueprint, request, session as client_session, flash,
+                   render_template, redirect, url_for, json, abort)
 from flask.ext.login import (LoginManager, login_user, logout_user, UserMixin,
-                            AnonymousUserMixin, current_user, login_required)
+                             AnonymousUserMixin, current_user, login_required)
 from flask.ext.sqlalchemy import SQLAlchemy
 from wtforms import fields, validators
 from flask.ext.wtf import Form
@@ -152,6 +152,15 @@ def hello():
     return render_template('hello.html')
 
 
+@blog.route('/account')
+@login_required
+def account():
+    posts = CommitPost.query \
+                .filter_by(blogger=current_user) \
+                .order_by(CommitPost.datetime.desc())
+    return render_template('account.html', posts=posts)
+
+
 @blog.route('/', subdomain='<blogger>')
 def list(blogger):
     blog_author = Blogger.query.filter_by(username=blogger).first() or abort(404)
@@ -161,8 +170,8 @@ def list(blogger):
     return render_template('blog-list.html', posts=posts, blogger=blog_author)
 
 
-@login_required
 @blog.route('/add')
+@login_required
 def add():
     form = AddCommitForm(request.args)
     if any((form.repo_name.data, form.sha.data)) and form.validate():
@@ -194,8 +203,8 @@ def add():
     return render_template('blog-add.html', form=form)
 
 
+@blog.route('/<path:repo_name>/<hex>/unpost')
 @login_required
-@blog.route('/<path:repo_name>/<hex>/remove')
 def remove(repo_name, hex):
     repo = Repo.query.filter_by(full_name=repo_name).first() or abort(404)
     commit = CommitPost.query \
@@ -219,26 +228,35 @@ def setup_github(state):
 
 @gh.route('/login')
 def login():
-    auth_uri = gh.api.get_authorize_url(scope='user,public_repo')
+    client_session['post_login_target'] = request.referrer if not \
+        request.referrer.startswith(url_for('pages.hello', _external=True)) \
+        else None
+    auth_uri = gh.api.get_authorize_url(scope='user,public_repo', next=next)
     return redirect(auth_uri)
 
 
 @gh.route('/logout')
 def logout():
+    print('logging out...')
+    next = request.referrer
+    if next.startswith(url_for('blog.account', _external=True)):
+        next = None  # don't go back to the account page
+    print('next: {}'.format(next))
     logout_user()
-    return redirect(url_for('pages.hello'))
+    return redirect(next or url_for('pages.hello'))
 
 
 @gh.route('/authorized')
 def authorized():
+    next = client_session.pop('post_login_target', None)
     if 'code' not in request.args:
-        return redirect(url_for('pages.hello', auth='sadface'))
+        return redirect(next or url_for('pages.hello', auth='sadface'))
 
     session = gh.api.get_auth_session(data={'code': request.args['code']})
     blogger = Blogger.gh_get_or_create(session)
 
     login_user(blogger)
-    return redirect(url_for('blog.list', blogger=blogger.username))
+    return redirect(next or url_for('blog.account'))
 
 
 @login_manager.user_loader

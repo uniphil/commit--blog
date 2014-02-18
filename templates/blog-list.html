@@ -6,34 +6,6 @@
     commits-by "{{ blogger.name or blogger.username }}"
   </h1>
 
-  {% if current_user.is_blogger(blogger) %}
-    <div class="user-control">
-      <p>Hi, {{ current_user.name or current_user.username }}! You can use this area with the blue border to add some commits to your blog.</p>
-      <h3>Your recent GitHub pushes:</h3>
-      <p><strong>Note:</strong> only commits with more than just the title are shown in this list</p>
-      <table>
-        {% for event in current_user.get_new_events() %}
-          <tr>
-            <td>{{ event.repo }}</td>
-            <td>{{ event.title }}</td>
-            <td>
-              <a class="button" href="{{ url_for('blog.add',
-                                                 repo_name=event.repo,
-                                                 sha=event.sha,
-                                                 csrf_token=csrf_token()) }}">Blog&nbsp;this</a>
-            </td>
-          </tr>
-        {% else %}
-          <tr><td colspan="3">No new events :(</td></tr>
-        {% endfor %}
-      </table>
-      <h3>Add a specific commit</h3>
-      <p>If you know the repository and sha-1 hash of a commit, you an add it directly</p>
-      <p><a class="button" href="{{ url_for('blog.add') }}">Blog a commit manually</a></p>
-      <h3>... and here's your blog!</h3>
-    </div>
-  {% endif %}
-
   {% for post in posts %}
 
     <article>
