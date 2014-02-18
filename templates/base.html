@@ -10,6 +10,19 @@
   </head>
   <body>
     <div class="content">
+      {% block plug %}
+        <nav class="plug">
+          <a href="{{ url_for('pages.hello') }}">$ commit --blog</a>
+          {% if current_user.is_authenticated() %}
+            --user {{ current_user.username }}
+            [<a href="{{ url_for('blog.account') }}">--dashboard</a>]
+            [<a href="{{ url_for('blog.list', blogger=current_user.username) }}">--my-blog</a>]
+            [<a href="{{ url_for('gh.logout') }}">--logout</a>]
+          {% else %}
+            [<a href="{{ url_for('gh.login') }}">--login-with-github</a>]
+          {% endif %}
+        </nav>
+      {% endblock %}
       {% block content %}
       {% endblock %}
     </div>
