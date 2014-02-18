@@ -217,7 +217,7 @@ def remove(repo_name, hex):
 
 @gh.record
 def setup_github(state):
-    state.blueprint.api = OAuth2Service(name='github',
+    gh.api = OAuth2Service(name='github',
        base_url='https://api.github.com/',
        authorize_url='https://github.com/login/oauth/authorize',
        access_token_url='https://github.com/login/oauth/access_token',
