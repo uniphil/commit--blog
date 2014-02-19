@@ -62,7 +62,14 @@ button,
 }
 button.sad,
 .button.sad {
+  color: #846;
+  background: transparent;
+  border: 1px dotted #846;
+}
+button.sad:hover,
+.button.sad:hover {
   background: #846;
+  color: #fff;
 }
 button,
 a.button {
