@@ -58,9 +58,10 @@ button,
   border-radius: 3px;
   font-weight: normal;
   font: inherit;
+  cursor: pointer;
 }
-button.bad,
-.button.bad {
+button.sad,
+.button.sad {
   background: #846;
 }
 button,
@@ -103,4 +104,8 @@ code {
   border-left: 3px solid #663;
   background: #eea;
   color: #663;
+}
+
+.inline {
+  display: inline-block;
 }

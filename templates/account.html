@@ -33,7 +33,7 @@
   <p>Done with your blog? You can delete it if you want. Sorry to see you go!</p>
   <form method="post" action="{{ url_for('gh.delete_account') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-    <p><button type="submit" class="bad" href="{{ url_for('gh.delete_account') }}">Delete Account :(</button></p>
+    <p><button type="submit" class="sad" href="{{ url_for('gh.delete_account') }}">Delete Account :(</button></p>
   </form>
 
 {% endblock %}

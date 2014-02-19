@@ -4,12 +4,15 @@
   <article>
     <header>
       <h1>{{ post.get_title() }} <small>{{ post.repo.full_name }}</small></h1>
-      <p>
+      <time datetime="{{ post.datetime.isoformat() }}">
         {{ post.datetime | nice_date }}
-        {% if current_user.is_blogger(blogger) %}
-          <a href="{{ url_for('blog.remove', repo_name=post.repo.full_name, hex=post.hex) }}">Unpost</a>
-        {% endif %}
-      </p>
+      </time>
+      {% if current_user.is_blogger(blogger) %}
+        <form class="inline" method="post" action="{{ url_for('blog.remove', repo_name=post.repo.full_name, hex=post.hex) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <button type="submit" class="sad">Unpost</button>
+        </form>
+      {% endif %}
     </header>
     <p>{{ post.get_body(markdown=True)|safe }}</p>
   </article>

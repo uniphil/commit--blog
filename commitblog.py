@@ -213,7 +213,7 @@ def add():
     return render_template('blog-add.html', form=form)
 
 
-@blog.route('/<path:repo_name>/<hex>/unpost')
+@blog.route('/<path:repo_name>/<hex>/unpost', methods=['POST'])
 @login_required
 def remove(repo_name, hex):
     repo = Repo.query.filter_by(full_name=repo_name).first() or abort(404)
