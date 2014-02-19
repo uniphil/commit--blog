@@ -10,7 +10,7 @@
   <h2>Your recent GitHub pushes:</h2>
   <p><strong>Note:</strong> only commits with more than just the title are shown in this list</p>
   <table class="recent-events">
-    {% for event in current_user.get_new_events() %}
+    {% for event in events %}
       <tr>
         <td>{{ event.repo }}</td>
         <td>{{ event.title }}</td>

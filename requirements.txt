@@ -5,6 +5,7 @@ Flask-SQLAlchemy==1.0
 Flask-Script==0.6.7
 rauth==0.6.2
 python-dateutil==2.2
+requests==2.2.1
 gunicorn==18.0
 
 # for production

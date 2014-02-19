@@ -11,8 +11,11 @@
 
 from os import environ
 import json
+from urlparse import urlparse, urljoin, parse_qsl
 import dateutil.parser
-from rauth.service import OAuth2Service
+from requests.sessions import Session
+from requests.utils import default_user_agent
+from rauth.service import OAuth2Session, OAuth2Service
 from flask import (Flask, Blueprint, request, session as client_session, flash,
                    render_template, redirect, url_for, json, abort)
 from flask.ext.login import (LoginManager, login_user, logout_user, UserMixin,
@@ -73,22 +76,7 @@ class Blogger(db.Model, UserMixin):
         return (self == blogger)
 
     def get_session(self):
-        return gh.api.get_session(token=self.access_token)
-
-    def get_new_events(self):
-        events_url = '/users/{0.username}/events/public'.format(self)
-        events = self.get_session().get(events_url).json()
-        commit_events = []
-        for event in events:
-            if event['type'] == 'PushEvent':
-                for commit in event['payload']['commits']:
-                    commit.update(repo=event['repo']['name'])
-                    title, body = message_parts(commit['message'])
-                    if not body:
-                        continue
-                    commit.update(title=title, body=body)
-                    commit_events.append(commit)
-        return commit_events
+        return gh.oauth.get_session(token=self.access_token)
 
     def __repr__(self):
         return '<Blogger: {}>'.format(self.username)
@@ -159,10 +147,21 @@ def hello():
 @blog.route('/account')
 @login_required
 def account():
-    posts = CommitPost.query \
-                .filter_by(blogger=current_user) \
-                .order_by(CommitPost.datetime.desc())
-    return render_template('account.html', posts=posts)
+    events_url = '/users/{0.username}/events/public'.format(current_user)
+    with gh.AppSession() as session:
+        events_resp = session.get(events_url)
+    events = events_resp.json()
+    commit_events = []
+    for event in events:
+        if event['type'] == 'PushEvent':
+            for commit in event['payload']['commits']:
+                commit.update(repo=event['repo']['name'])
+                title, body = message_parts(commit['message'])
+                if not body:
+                    continue
+                commit.update(title=title, body=body)
+                commit_events.append(commit)
+    return render_template('account.html', events=commit_events)
 
 
 @blog.route('/', subdomain='<blogger>')
@@ -189,25 +188,25 @@ def commit_post(blogger, repo_name, hex):
 def add():
     form = AddCommitForm(request.args)
     if any((form.repo_name.data, form.sha.data)) and form.validate():
-        session = current_user.get_session()
         commit_url = '/repos/{repo}/git/commits/{hex}'.format(
                         repo=form.repo_name.data, hex=form.sha.data)
-        gh_commit = session.get(commit_url).json()
-        repo, repo_created = Repo.get_or_create(form.repo_name.data)
-        commit = CommitPost(
-            hex=form.sha.data,
-            message=gh_commit['message'],
-            datetime=dateutil.parser.parse(gh_commit['author']['date']),
-            repo=repo,
-            blogger=current_user,
-        )
-        if commit.get_body():
-            markdown_data = json.dumps(dict(text=commit.get_body(),
+        with gh.AppSession() as session:
+            gh_commit = session.get(commit_url).json()
+            repo, repo_created = Repo.get_or_create(form.repo_name.data)
+            commit = CommitPost(
+                hex=form.sha.data,
+                message=gh_commit['message'],
+                datetime=dateutil.parser.parse(gh_commit['author']['date']),
+                repo=repo,
+                blogger=current_user,
+            )
+            if commit.get_body():
+                markdown_data = json.dumps(dict(text=commit.get_body(),
                                     mode='gfm', context=form.repo_name.data))
-            commit.markdown_body = session.post('/markdown',
-                                    data=markdown_data).text
-        else:
-            commit.markdown_body = ''
+                commit.markdown_body = session.post('/markdown',
+                                        data=markdown_data).text
+            else:
+                commit.markdown_body = ''
         db.session.add(commit)
         if repo_created:
             db.session.add(repo)
@@ -232,12 +231,65 @@ def remove(repo_name, hex):
     return redirect(url_for('.list', blogger=current_user.username))
 
 
+def useragentify(session):
+    """declare a specific user-agent for commit --blog"""
+    user_agent = default_user_agent('commit --blog')
+    session.headers.update({'User-Agent': user_agent})
+
+
+class GHAppSession(Session):
+    """A session object for app-authenticated GitHub API requests
+
+    Allows relative URLs from a base_url.
+
+    Injects the app id and secret instead of the user's (useless-for-no-scopes)
+    bearer token to make requests to public endpoints with the usual 5000 req
+    rate limit rules.
+    """
+
+    def __init__(self, base_url, client_id, client_secret):
+        super(GHAppSession, self).__init__()
+        useragentify(self)
+        self.base_url = base_url
+        self.client_id = client_id
+        self.client_secret = client_secret
+
+    def request(self, method, url, **req_kwargs):
+        # absolutify URL
+        if not bool(urlparse(url).netloc):
+            url = urljoin(self.base_url, url)
+
+        # inject app credentials
+        params = req_kwargs.pop('params', {})
+        if isinstance(params, str):
+            params = parse_qsl(params)
+        params.update(client_id=self.client_id,
+                      client_secret=self.client_secret)
+
+        return super(GHAppSession, self).request(method, url, params=params,
+                     **req_kwargs)
+
+
+class GHOAuthSession(OAuth2Session):
+    """An OAuth2 session for user authentication, with a nice UA header"""
+
+    def __init__(self, *args, **kwargs):
+        super(GHOAuthSession, self).__init__(*args, **kwargs)
+        useragentify(self)
+
+
 @gh.record
 def setup_github(state):
-    gh.api = OAuth2Service(name='github',
-       base_url='https://api.github.com/',
+    gh.BASE_URL = 'https://api.github.com/'
+    gh.oauth = OAuth2Service(name='github',
+       base_url=gh.BASE_URL,
        authorize_url='https://github.com/login/oauth/authorize',
        access_token_url='https://github.com/login/oauth/access_token',
+       client_id=state.app.config['GITHUB_CLIENT_ID'],
+       client_secret=state.app.config['GITHUB_CLIENT_SECRET'],
+       session_obj=GHOAuthSession,
+    )
+    gh.AppSession = lambda: GHAppSession(gh.BASE_URL,
        client_id=state.app.config['GITHUB_CLIENT_ID'],
        client_secret=state.app.config['GITHUB_CLIENT_SECRET'],
     )
@@ -251,7 +303,7 @@ def login():
         client_session['after_login_redirect'] = None
     else:
         client_session['after_login_redirect'] = referrer
-    auth_uri = gh.api.get_authorize_url(scope='user,public_repo', next=next)
+    auth_uri = gh.oauth.get_authorize_url()
     return redirect(auth_uri)
 
 @gh.route('/authorized')
@@ -262,7 +314,7 @@ def authorized():
     if 'code' not in request.args:
         return redirect(next or url_for('pages.hello', auth='sadface'))
 
-    session = gh.api.get_auth_session(data={'code': request.args['code']})
+    session = gh.oauth.get_auth_session(data={'code': request.args['code']})
     blogger = Blogger.gh_get_or_create(session)
 
     login_user(blogger)
