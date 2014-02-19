@@ -238,22 +238,39 @@ def setup_github(state):
 
 @gh.route('/login')
 def login():
-    client_session['post_login_target'] = request.referrer if not \
-        request.referrer.startswith(url_for('pages.hello', _external=True)) \
-        else None
+    referrer = request.referrer
+    if referrer is None or \
+        referrer.startswith(url_for('pages.hello', _external=True)):
+        client_session['after_login_redirect'] = None
+    else:
+        client_session['after_login_redirect'] = referrer
     auth_uri = gh.api.get_authorize_url(scope='user,public_repo', next=next)
     return redirect(auth_uri)
+
+@gh.route('/authorized')
+def authorized():
+    # final stage of oauth login
+    next = client_session.pop('after_login_redirect', None)
+
+    if 'code' not in request.args:
+        return redirect(next or url_for('pages.hello', auth='sadface'))
+
+    session = gh.api.get_auth_session(data={'code': request.args['code']})
+    blogger = Blogger.gh_get_or_create(session)
+
+    login_user(blogger)
+    return redirect(next or url_for('blog.account'))
 
 
 @gh.route('/logout')
 def logout():
-    print('logging out...')
-    next = request.referrer
-    if next.startswith(url_for('blog.account', _external=True)):
-        next = None  # don't go back to the account page
-    print('next: {}'.format(next))
     logout_user()
-    return redirect(next or url_for('pages.hello'))
+    referrer = request.referrer
+    if referrer is None or \
+        referrer.startswith(url_for('blog.account', _external=True)):
+        return redirect(url_for('pages.hello'))
+    else:
+        return redirect(referrer)
 
 
 @gh.route('/delete-account', methods=['POST'])
@@ -267,19 +284,6 @@ def delete_account():
     db.session.commit()
     logout_user()
     return redirect(url_for('pages.hello'))
-
-
-@gh.route('/authorized')
-def authorized():
-    next = client_session.pop('post_login_target', None)
-    if 'code' not in request.args:
-        return redirect(next or url_for('pages.hello', auth='sadface'))
-
-    session = gh.api.get_auth_session(data={'code': request.args['code']})
-    blogger = Blogger.gh_get_or_create(session)
-
-    login_user(blogger)
-    return redirect(next or url_for('blog.account'))
 
 
 @login_manager.user_loader
