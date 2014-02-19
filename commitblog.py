@@ -18,6 +18,7 @@ from flask import (Flask, Blueprint, request, session as client_session, flash,
 from flask.ext.login import (LoginManager, login_user, logout_user, UserMixin,
                              AnonymousUserMixin, current_user, login_required)
 from flask.ext.sqlalchemy import SQLAlchemy
+from sqlalchemy.exc import IntegrityError
 from wtforms import fields, validators
 from flask.ext.wtf import Form
 from flask.ext.wtf.csrf import CsrfProtect
@@ -113,6 +114,9 @@ class Repo(db.Model):
 
 
 class CommitPost(db.Model):
+
+    __table_args__ = (db.UniqueConstraint('hex', 'repo_id'),)
+
     id = db.Column(db.Integer, primary_key=True)
     hex = db.Column(db.String(40))
     message = db.Column(db.String)
@@ -207,7 +211,10 @@ def add():
         db.session.add(commit)
         if repo_created:
             db.session.add(repo)
-        db.session.commit()
+        try:
+            db.session.commit()
+        except IntegrityError:
+            flash('Already blogged!', 'info')
         return redirect(url_for('blog.account'))
 
     return render_template('blog-add.html', form=form)

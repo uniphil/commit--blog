@@ -109,3 +109,17 @@ code {
 .inline {
   display: inline-block;
 }
+
+.messages {
+  margin: 3em 0 1em;
+  padding: 0;
+}
+.message {
+  margin: 0;
+  padding: 0;
+  list-style-type: none;
+}
+.message:before {
+  content: "# ";
+  color: #468;
+}
