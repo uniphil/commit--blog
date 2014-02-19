@@ -24,7 +24,9 @@
           </form>
         {% endif %}
       </header>
-      {{ post.get_body(markdown=True)|safe }}
+      <div class="post-body">
+        {{ post.get_body(markdown=True)|safe }}
+      </div>
     </article>
 
   {% else %}

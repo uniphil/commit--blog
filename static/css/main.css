@@ -123,3 +123,17 @@ code {
   content: "# ";
   color: #468;
 }
+
+.post-body h1 {
+  font-size: 1.3em;
+  font-weight: bold;
+}
+.post-body h2 {
+  font-size: 1.2em;
+  font-weight: normal;
+}
+.post-body h1:before,
+.post-body h2:before {
+  content: "";
+  display: none;
+}
