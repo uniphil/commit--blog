@@ -29,4 +29,11 @@
   <p>If you know the repository and sha-1 hash of a commit, you an add it directly</p>
   <p><a class="button" href="{{ url_for('blog.add') }}">Blog a commit manually</a></p>
 
+  <h2>Your Account</h2>
+  <p>Done with your blog? You can delete it if you want. Sorry to see you go!</p>
+  <form method="post" action="{{ url_for('gh.delete_account') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    <p><button type="submit" class="bad" href="{{ url_for('gh.delete_account') }}">Delete Account :(</button></p>
+  </form>
+
 {% endblock %}
