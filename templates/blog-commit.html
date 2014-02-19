@@ -14,7 +14,7 @@
         </form>
       {% endif %}
     </header>
-    <p>{{ post.get_body(markdown=True)|safe }}</p>
+    {{ post.get_body(markdown=True)|safe }}
   </article>
   <footer>
     --<br/>
