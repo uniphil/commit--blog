@@ -64,8 +64,8 @@ class Blogger(db.Model, UserMixin):
             user = cls(
                 gh_id=user_obj['id'],
                 username=user_obj['login'],
-                name=user_obj['name'],
-                avatar_url=user_obj['avatar_url'],
+                name=user_obj.get('name'),
+                avatar_url=user_obj.get('avatar_url'),
                 access_token=session.access_token,
             )
             db.session.add(user)
