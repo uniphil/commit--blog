@@ -208,7 +208,7 @@ def commit_post(blogger, repo_name, hex):
     post = CommitPost.query \
                 .filter_by(blogger=blog_author, repo=repo, hex=hex) \
                 .first() or abort(404)
-    return render_template('blog-commit.html', post=post, blogger=blog_author)
+    return render_template('blog-post.html', post=post, blogger=blog_author)
 
 
 @blog.route('/add')
