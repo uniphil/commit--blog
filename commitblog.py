@@ -12,6 +12,7 @@
 from os import environ
 import json
 from urlparse import urlparse, urljoin, parse_qsl
+from werkzeug.contrib.atom import AtomFeed
 import dateutil.parser
 from requests.sessions import Session
 from requests.utils import default_user_agent
@@ -171,6 +172,30 @@ def list(blogger):
                 .filter_by(blogger=blog_author) \
                 .order_by(CommitPost.datetime.desc())
     return render_template('blog-list.html', posts=posts, blogger=blog_author)
+
+
+@blog.route('/feed', subdomain='<blogger>')
+def feed(blogger):
+    blog_author = Blogger.query.filter_by(username=blogger).first() or abort(404)
+    posts = CommitPost.query \
+                .filter_by(blogger=blog_author) \
+                .order_by(CommitPost.datetime.desc())
+    feed = AtomFeed('$ commits-by ' + blog_author.name or blog_author.username,
+                    feed_url=request.url, url=request.url_root)
+    for post in posts:
+        feed.add(
+            post.get_title(),
+            unicode(post.get_body(markdown=True)),
+            content_type='html',
+            author=blog_author.name or blog_author.username,
+            url=url_for('blog.commit_post', _external=True,
+                        blogger=blog_author.username,
+                        repo_name=post.repo.full_name,
+                        hex=post.hex),
+            updated=post.datetime,
+            published=post.datetime,
+        )
+    return feed.get_response()
 
 
 @blog.route('/<path:repo_name>/<hex>', subdomain='<blogger>')

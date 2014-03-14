@@ -2,9 +2,12 @@
 
 {% block content  %}
 
-  <h1>
-    commits-by "{{ blogger.name or blogger.username }}"
-  </h1>
+  <header>
+    <h1>
+      commits-by "{{ blogger.name or blogger.username }}"
+    </h1>
+    <p><a href="{{ url_for('blog.feed', blogger=blogger.username) }}">feed</a></p>
+  </header>
 
   {% for post in posts %}
 
