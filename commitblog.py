@@ -183,7 +183,7 @@ def feed(blogger):
     posts = CommitPost.query \
                 .filter_by(blogger=blog_author) \
                 .order_by(CommitPost.datetime.desc())
-    feed = AtomFeed('$ commits-by ' + blog_author.name or blog_author.username,
+    feed = AtomFeed('$ commits-by ' + (blog_author.name or blog_author.username),
                     feed_url=request.url, url=request.url_root)
     for post in posts:
         feed.add(
