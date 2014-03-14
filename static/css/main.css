@@ -21,7 +21,8 @@ h2:before {
 
 a,
 h1:before,
-h2:before {
+h2:before,
+.ps1 {
   font-weight: bold;
   color: #468;
   text-decoration: none;
@@ -142,5 +143,15 @@ code {
 .post-body h1:before,
 .post-body h2:before {
   content: "";
+  display: none;
+}
+
+.error-page {
+  margin-top: 8em;
+}
+.error-page h1 {
+  font-size: 1.5em;
+}
+.error-page h1:before {
   display: none;
 }

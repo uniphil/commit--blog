@@ -45,6 +45,9 @@ def message_parts(commit_message):
 
 class AnonymousUser(AnonymousUserMixin):
     """Implement convenient methods that are nice to use on current_user"""
+
+    username = 'anon'
+
     def is_blogger(self, blogger):
         return False
 
@@ -398,6 +401,10 @@ def configure(app, config):
     @app.template_filter('nice_date')
     def nice_date(date, format='%b %d, %Y'):
         return date.strftime(format) if date else None
+
+    @app.errorhandler(404)
+    def not_found(error):
+        return render_template('not-found.html')
 
 
 def create_app(config=None):
