@@ -251,13 +251,14 @@ def add():
 @blog.route('/<path:repo_name>/<hex>/unpost', methods=['POST'])
 @login_required
 def remove(repo_name, hex):
+    next = request.referrer or url_for('.list', blogger=current_user.username)
     repo = Repo.query.filter_by(full_name=repo_name).first() or abort(404)
     commit = CommitPost.query \
                 .filter_by(blogger=current_user, hex=hex, repo=repo) \
                 .first() or abort(404)
     db.session.delete(commit)
     db.session.commit()
-    return redirect(url_for('.list', blogger=current_user.username))
+    return redirect(next)
 
 
 def useragentify(session):
