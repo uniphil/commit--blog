@@ -97,6 +97,20 @@ table.recent-events .button {
   opacity: 1;
 }
 
+.show-post-body {
+  display: inline-block;
+  font-size: 1.5em;
+  line-height: 0.3em;
+  height: 0.3em;
+  padding: 0 0.3em 0.2em;
+  color: #fff;
+  background: #468;
+}
+.show-post-body:hover {
+  text-decoration: none;
+}
+
+
 code {
   display: inline-block;
   padding: 0 0.2em;
@@ -154,4 +168,16 @@ code {
 }
 .error-page h1:before {
   display: none;
+}
+
+/* Thank you H5BP */
+.visuallyhidden {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  width: 1px;
 }

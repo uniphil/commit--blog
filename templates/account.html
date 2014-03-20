@@ -13,7 +13,11 @@
     {% for event in events %}
       <tr {% if event.post is not none %}class="post"{% endif %}>
         <td>{{ event.repo }}</td>
-        <td>{{ event.title }}</td>
+        <td title="{{ event.title }}: {{ event.body }}">
+          {{ event.title }}
+          <a class="show-post-body" href="#post-{{ loop.index }}">&hellip;</a>
+          <pre class="post-body visuallyhidden" id="post-{{ loop.index }}">{{ event.body }}</pre>
+        </td>
         <td>
           {% if event.post is none %}
             <a class="button" href="{{ url_for('blog.add', repo_name=event.repo,
