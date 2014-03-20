@@ -163,7 +163,8 @@ def account():
                 title, body = message_parts(commit['message'])
                 if not body:
                     continue
-                commit.update(title=title, body=body)
+                post = CommitPost.query.filter_by(hex=commit['sha']).first()
+                commit.update(title=title, body=body, post=post)
                 commit_events.append(commit)
     return render_template('account.html', events=commit_events)
 

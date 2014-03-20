@@ -11,14 +11,20 @@
   <p><strong>Note:</strong> only commits with more than just the title are shown in this list</p>
   <table class="recent-events">
     {% for event in events %}
-      <tr>
+      <tr {% if event.post is not none %}class="post"{% endif %}>
         <td>{{ event.repo }}</td>
         <td>{{ event.title }}</td>
         <td>
-          <a class="button" href="{{ url_for('blog.add',
-                                             repo_name=event.repo,
-                                             sha=event.sha,
-                                             csrf_token=csrf_token()) }}">Blog&nbsp;this</a>
+          {% if event.post is none %}
+            <a class="button" href="{{ url_for('blog.add', repo_name=event.repo,
+                                        sha=event.sha, csrf_token=csrf_token()) }}">Blog&nbsp;this</a>
+          {% else %}
+            <form class="inline" method="post" action="{{ url_for('blog.remove',
+                                        repo_name=event.post.repo.full_name, hex=event.sha) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              <button type="submit" class="sad">Unpost</button>
+            </form>
+          {% endif %}
         </td>
       </tr>
     {% else %}
