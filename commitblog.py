@@ -367,7 +367,7 @@ def logout():
 def delete_account():
     db.session.delete(current_user)
     for post in current_user.commit_posts:
-        db.session.delete(current_user)
+        db.session.delete(post)
     # don't delete repos because they may be used by other users
     # later maybe prune orphans
     db.session.commit()
