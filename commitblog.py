@@ -23,6 +23,7 @@ from flask.ext.login import (LoginManager, login_user, logout_user, UserMixin,
                              AnonymousUserMixin, current_user, login_required)
 from flask.ext.sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import func
 from wtforms import fields, validators
 from flask.ext.wtf import Form
 from flask.ext.wtf.csrf import CsrfProtect
@@ -75,6 +76,11 @@ class Blogger(db.Model, UserMixin):
             db.session.add(user)
             db.session.commit()
         return user
+
+    @classmethod
+    def from_subdomain(cls, username):
+        """Handle casing issues with domains"""
+        return cls.query.filter(username.lower() == func.lower(cls.username)).first()
 
     def is_blogger(self, blogger):
         return (self == blogger)
@@ -171,7 +177,7 @@ def account():
 
 @blog.route('/', subdomain='<blogger>')
 def list(blogger):
-    blog_author = Blogger.query.filter_by(username=blogger).first() or abort(404)
+    blog_author = Blogger.from_subdomain(blogger) or abort(404)
     posts = CommitPost.query \
                 .filter_by(blogger=blog_author) \
                 .order_by(CommitPost.datetime.desc())
@@ -180,7 +186,7 @@ def list(blogger):
 
 @blog.route('/feed', subdomain='<blogger>')
 def feed(blogger):
-    blog_author = Blogger.query.filter_by(username=blogger).first() or abort(404)
+    blog_author = Blogger.from_subdomain(blogger) or abort(404)
     posts = CommitPost.query \
                 .filter_by(blogger=blog_author) \
                 .order_by(CommitPost.datetime.desc())
@@ -204,7 +210,7 @@ def feed(blogger):
 
 @blog.route('/<path:repo_name>/<hex>', subdomain='<blogger>')
 def commit_post(blogger, repo_name, hex):
-    blog_author = Blogger.query.filter_by(username=blogger).first() or abort(404)
+    blog_author = Blogger.from_subdomain(blogger) or abort(404)
     repo = Repo.query.filter_by(full_name=repo_name).first() or abort(404)
     post = CommitPost.query \
                 .filter_by(blogger=blog_author, repo=repo, hex=hex) \
