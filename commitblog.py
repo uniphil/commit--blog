@@ -406,7 +406,7 @@ def configure(app, config):
 
     @app.errorhandler(404)
     def not_found(error):
-        return render_template('not-found.html')
+        return render_template('not-found.html'), 404
 
 
 def create_app(config=None):
