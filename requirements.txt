@@ -1,12 +1,12 @@
-Flask==0.10.1
+flask==1.1.1
 Flask-Login==0.2.9
 Flask-WTF==0.9.4
-Flask-SQLAlchemy==1.0
+flask-sqlalchemy==2.4.0
 Flask-Script==0.6.7
 rauth==0.6.2
 python-dateutil==2.2
-requests==2.2.1
-gunicorn==18.0
+requests==2.22.0
+gunicorn==19.9.0
 
 # for production
 psycopg2

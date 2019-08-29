@@ -10,23 +10,24 @@
 """
 
 from os import environ
-import json
 from urlparse import urlparse, urljoin, parse_qsl
 from werkzeug.contrib.atom import AtomFeed
 import dateutil.parser
 from requests.sessions import Session
 from requests.utils import default_user_agent
 from rauth.service import OAuth2Session, OAuth2Service
-from flask import (Flask, Blueprint, request, session as client_session, flash,
-                   render_template, redirect, url_for, json, abort)
-from flask.ext.login import (LoginManager, login_user, logout_user, UserMixin,
-                             AnonymousUserMixin, current_user, login_required)
-from flask.ext.sqlalchemy import SQLAlchemy
+from flask import (
+    Flask, Blueprint, request, session as client_session, flash,
+    render_template, redirect, url_for, json, abort)
+from flask_login import (
+    LoginManager, login_user, logout_user, UserMixin, AnonymousUserMixin,
+    current_user, login_required)
+from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import func
 from wtforms import fields, validators
-from flask.ext.wtf import Form
-from flask.ext.wtf.csrf import CsrfProtect
+from flask_wtf import Form
+from flask_wtf.csrf import CsrfProtect
 
 
 login_manager = LoginManager()
@@ -236,10 +237,12 @@ def add():
                 blogger=current_user,
             )
             if commit.get_body():
-                markdown_data = json.dumps(dict(text=commit.get_body(),
-                                    mode='gfm', context=form.repo_name.data))
-                commit.markdown_body = session.post('/markdown',
-                                        data=markdown_data).text
+                markdown_data = json.dumps(dict(
+                    text=commit.get_body(),
+                    mode='gfm',
+                    context=form.repo_name.data))
+                commit.markdown_body = session.post(
+                    '/markdown', data=markdown_data).text
             else:
                 commit.markdown_body = ''
         db.session.add(commit)
@@ -302,8 +305,8 @@ class GHAppSession(Session):
         params.update(client_id=self.client_id,
                       client_secret=self.client_secret)
 
-        return super(GHAppSession, self).request(method, url, params=params,
-                     **req_kwargs)
+        return super(GHAppSession, self).request(
+            method, url, params=params, **req_kwargs)
 
 
 class GHOAuthSession(OAuth2Session):
@@ -317,17 +320,19 @@ class GHOAuthSession(OAuth2Session):
 @gh.record
 def setup_github(state):
     gh.BASE_URL = 'https://api.github.com/'
-    gh.oauth = OAuth2Service(name='github',
-       base_url=gh.BASE_URL,
-       authorize_url='https://github.com/login/oauth/authorize',
-       access_token_url='https://github.com/login/oauth/access_token',
-       client_id=state.app.config['GITHUB_CLIENT_ID'],
-       client_secret=state.app.config['GITHUB_CLIENT_SECRET'],
-       session_obj=GHOAuthSession,
+    gh.oauth = OAuth2Service(
+        name='github',
+        base_url=gh.BASE_URL,
+        authorize_url='https://github.com/login/oauth/authorize',
+        access_token_url='https://github.com/login/oauth/access_token',
+        client_id=state.app.config['GITHUB_CLIENT_ID'],
+        client_secret=state.app.config['GITHUB_CLIENT_SECRET'],
+        session_obj=GHOAuthSession,
     )
-    gh.AppSession = lambda: GHAppSession(gh.BASE_URL,
-       client_id=state.app.config['GITHUB_CLIENT_ID'],
-       client_secret=state.app.config['GITHUB_CLIENT_SECRET'],
+    gh.AppSession = lambda: GHAppSession(
+        gh.BASE_URL,
+        client_id=state.app.config['GITHUB_CLIENT_ID'],
+        client_secret=state.app.config['GITHUB_CLIENT_SECRET'],
     )
 
 
@@ -341,6 +346,7 @@ def login():
         client_session['after_login_redirect'] = referrer
     auth_uri = gh.oauth.get_authorize_url()
     return redirect(auth_uri)
+
 
 @gh.route('/authorized')
 def authorized():

@@ -7,7 +7,7 @@
     Management utilities for commit --blog
 """
 
-from flask.ext.script import Manager
+from flask_script import Manager
 from commitblog import create_app
 
 
