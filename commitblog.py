@@ -316,14 +316,10 @@ class GHAppSession(Session):
             url = urljoin(self.base_url, url)
 
         # inject app credentials
-        params = req_kwargs.pop('params', {})
-        if isinstance(params, str):
-            params = parse_qsl(params)
-        params.update(client_id=self.client_id,
-                      client_secret=self.client_secret)
+        auth=(self.client_id, self.client_secret)
 
         return super(GHAppSession, self).request(
-            method, url, params=params, **req_kwargs)
+            method, url, auth=auth, **req_kwargs)
 
 
 class GHOAuthSession(OAuth2Session):
