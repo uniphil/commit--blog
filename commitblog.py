@@ -13,6 +13,7 @@ from os import environ
 from urlparse import urlparse, urljoin, parse_qsl
 from werkzeug.contrib.atom import AtomFeed
 import dateutil.parser
+import re
 from requests.sessions import Session
 from requests.utils import default_user_agent
 from rauth.service import OAuth2Session, OAuth2Service
@@ -28,6 +29,9 @@ from sqlalchemy import func
 from wtforms import fields, validators
 from flask_wtf import Form
 from flask_wtf.csrf import CsrfProtect
+
+
+GH_RAW_BASE = 'https://raw.githubusercontent.com'
 
 
 login_manager = LoginManager()
@@ -135,9 +139,22 @@ class CommitPost(db.Model):
 
     def get_body(self, markdown=False):
         if markdown:
-            return self.markdown_body
+            return self.fix_gh_img(self.markdown_body)
         else:
             return self.get_parts()[1]
+
+    def fix_gh_img(self, html):
+        def repl(m):
+            path = m.groupdict()['path']
+            if '://' in path:
+                return m.group(0)
+            else:
+                fixed_path = '{base}/{repo}/{sha}/{path}'.format(
+                    base=GH_RAW_BASE, repo=self.repo.full_name, sha=self.hex,
+                    path=path)
+                return m.group(0).replace(path, fixed_path)
+
+        return re.sub(r'<img src="(?P<path>.*?)"', repl, html)
 
     def __repr__(self):
         return '<CommitPost: {}...>'.format(self.message[:16])
