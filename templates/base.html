@@ -13,7 +13,7 @@
       {% block plug %}
         <nav class="plug">
           <a href="{{ url_for('pages.hello') }}">$ commit --blog</a>
-          {% if current_user.is_authenticated() %}
+          {% if current_user.is_authenticated %}
             --user {{ current_user.username }}
             [<a href="{{ url_for('blog.account') }}">--dashboard</a>]
             [<a href="{{ url_for('blog.list', blogger=current_user.username) }}">--my-blog</a>]

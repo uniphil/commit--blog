@@ -1,13 +1,11 @@
-flask==1.1.1
-Flask-Login==0.2.9
-Flask-WTF==0.9.4
-flask-sqlalchemy==2.4.0
-Flask-Script==0.6.7
-rauth==0.6.2
-python-dateutil==2.2
-requests==2.22.0
-gunicorn==19.9.0
-werkzeug==0.15.3
-
-# for production
-psycopg2
+flask==1.1.2
+Flask-Login==0.5.0
+Flask-Script==2.0.6
+flask-sqlalchemy==2.4.4
+Flask-WTF==0.14.3
+gunicorn==19.10.0  # held back for py2 support
+psycopg2==2.8.6
+python-dateutil==2.8.1
+rauth==0.7.3
+requests==2.25.0
+werkzeug==0.16.1  # held back for atom-- maybe replace w lkiesow/python-feedgen

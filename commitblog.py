@@ -394,9 +394,9 @@ def logout():
 @gh.route('/delete-account', methods=['POST'])
 @login_required
 def delete_account():
-    db.session.delete(current_user)
     for post in current_user.commit_posts:
         db.session.delete(post)
+    db.session.delete(current_user)
     # don't delete repos because they may be used by other users
     # later maybe prune orphans
     db.session.commit()

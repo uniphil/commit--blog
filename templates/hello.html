@@ -7,7 +7,7 @@
     <h1>
       commit <strong>--blog</strong>
       <small>
-        {% if current_user.is_authenticated() %}
+        {% if current_user.is_authenticated %}
           hi {{ current_user.username }}:
           <a title="Manage your blog" href="{{ url_for('blog.list', blogger=current_user.username) }}">curate your blog</a>;
           <a title="Log out" href="{{ url_for('gh.logout') }}">log out</a>
@@ -25,7 +25,7 @@
 
   <h2>get-started</h2>
   <p>
-    {% if current_user.is_authenticated() %}
+    {% if current_user.is_authenticated %}
       <a href="{{ url_for('blog.list', blogger=current_user.username) }}" class="button">To the blog!</a>
     {% else %}
       <a href="{{ url_for('gh.login') }}" class="button">Sign in with GitHub</a>
