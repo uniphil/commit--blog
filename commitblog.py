@@ -10,7 +10,7 @@
 """
 
 from os import environ
-from urlparse import urlparse, urljoin, parse_qsl
+from urllib.parse import urlparse, urljoin, parse_qsl
 from werkzeug.contrib.atom import AtomFeed
 import dateutil.parser
 import re
@@ -213,7 +213,7 @@ def feed(blogger):
     for post in posts:
         feed.add(
             post.get_title(),
-            unicode(post.get_body(markdown=True)),
+            post.get_body(markdown=True),
             content_type='html',
             author=blog_author.name or blog_author.username,
             url=url_for('blog.commit_post', _external=True,
