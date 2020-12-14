@@ -1,4 +1,7 @@
-http_port {$PORT}
+{
+    http_port {$PORT}
+    email uniphil@gmail.com
+}
 
 *.commit--blog.com:{$PORT},
 commit--blog.com:{$PORT} {
