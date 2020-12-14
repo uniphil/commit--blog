@@ -1,1 +1,1 @@
-web: gunicorn wsgi:app -b 0.0.0.0:$PORT
+web: bin/start-caddy gunicorn --config=gunicorn.conf.py wsgi:app
