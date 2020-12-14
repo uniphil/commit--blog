@@ -1,7 +1,9 @@
 *.commit--blog.com:{$PORT},
 commit--blog.com:{$PORT} {
-  tls acme {
-    alt_http_port {$PORT}
+  tls uniphil@gmail.com {
+    issuer acme {
+        alt_http_port {$PORT}
+      }
   }
   reverse_proxy unix//tmp/caddy.sock
 }
