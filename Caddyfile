@@ -1,8 +1,3 @@
-www.{env.SERVER_NAME}:{$PORT} {
-    redir https://{env.SERVER_NAME}{uri}
-}
-
-{env.SERVER_NAME}:{$PORT},
-*.{env.SERVER_NAME}:{$PORT} {
-    reverse_proxy unix//tmp/caddy.sock
+{$SERVER_NAME}:{$PORT} {
+  reverse_proxy unix//tmp/caddy.sock
 }
