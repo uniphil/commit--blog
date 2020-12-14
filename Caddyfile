@@ -1,3 +1,5 @@
-{$SERVER_NAME}:{$PORT} {
+*.commit--blog.com:{$PORT},
+commit--blog.com:{$PORT} {
+  automatic_https disable
   reverse_proxy unix//tmp/caddy.sock
 }
