@@ -1,0 +1,56 @@
+{
+  "apps": {
+    "layer4": {
+      "servers": {
+        "cb": {
+          "listen": [":<%= ENV['PORT'] %>"],
+          "routes": [
+            {
+              "match": [{"http": []}],
+              "handle": [{
+                "handler": "proxy",
+                "upstreams": [{"dial": ["localhost:3080"]}]
+              }]
+            },
+            {
+              "match": [{"tls": {}}],
+              "handle": [{
+                "handler": "proxy",
+                "upstreams": [{"dial": ["localhost:3443"]}]
+              }]
+            }
+          ]
+        }
+      }
+    },
+    "http": {
+      "http_port": 3080,
+      "https_port": 3443,
+      "servers": {
+        "srv0": {
+          "listen": [":3443"],
+          "routes": [{
+            "match": [{"host": ["*.commit--blog.com", "commit--blog.com"]}],
+            "handle": [{
+              "handler": "subroute",
+              "routes": [{
+                "handle": [{
+                  "handler": "reverse_proxy",
+                  "upstreams": [{"dial": "unix//tmp/caddy.sock"}]
+                }]
+              }]
+            }],
+            "terminal": true
+          }]
+        }
+      }
+    },
+    "tls": {
+      "automation": {
+        "policies": [{
+          "issuer": {"email": "uniphil@gmail.com", "module": "acme"}
+        }]
+      }
+    }
+  }
+}
