@@ -1,5 +1,6 @@
 {
     http_port {$PORT}
+    https_port {$PORT}
     email uniphil@gmail.com
 }
 
