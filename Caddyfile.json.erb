@@ -1,34 +1,10 @@
 {
   "apps": {
-    "layer4": {
-      "servers": {
-        "cb": {
-          "listen": [":<%= ENV['PORT'] %>"],
-          "routes": [
-            {
-              "match": [{"http": []}],
-              "handle": [{
-                "handler": "proxy",
-                "upstreams": [{"dial": ["localhost:8080"]}]
-              }]
-            },
-            {
-              "match": [{"tls": {}}],
-              "handle": [{
-                "handler": "proxy",
-                "upstreams": [{"dial": ["localhost:3443"]}]
-              }]
-            }
-          ]
-        }
-      }
-    },
     "http": {
-      "http_port": 8080,
-      "https_port": 3443,
+      "http_port": <%= ENV['PORT'] %>,
       "servers": {
         "srv0": {
-          "listen": [":8080", ":3443"],
+          "listen": [":<%= ENV['PORT'] %>"],
           "routes": [{
             "match": [{
               "host": [
@@ -48,24 +24,6 @@
             "terminal": true
           }]
         }
-      }
-    },
-    "tls": {
-      "automation": {
-        "policies": [{
-          "issuer": {
-            "module": "acme",
-            "email": "uniphil@gmail.com",
-            "challenges": {
-              "dns": {
-                "provider": {
-                  "name": "cloudflare",
-                  "api_token": "<%= ENV['CLOUDFLARE_API_TOKEN'] %>"
-                }
-              }
-            }
-          }
-        }]
       }
     }
   }
