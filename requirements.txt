@@ -4,7 +4,6 @@ Flask-Script==2.0.6
 flask-sqlalchemy==2.4.4
 Flask-WTF==0.14.3
 gunicorn==20.0.4
-psycopg2==2.8.6
 python-dateutil==2.8.1
 rauth==0.7.3
 requests==2.25.0
