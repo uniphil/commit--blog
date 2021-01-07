@@ -274,9 +274,10 @@ def add():
     return render_template('blog-add.html', form=form)
 
 
+@blog.route('/<path:repo_name>/<hex>/unpost', subdomain='<blogger>', methods=['POST'])
 @blog.route('/<path:repo_name>/<hex>/unpost', methods=['POST'])
 @login_required
-def remove(repo_name, hex):
+def remove(repo_name, hex, blogger=None):
     next = request.referrer or url_for('.list', blogger=current_user.username)
     repo = Repo.query.filter_by(full_name=repo_name).first() or abort(404)
     commit = CommitPost.query \
