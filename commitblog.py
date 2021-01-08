@@ -161,10 +161,15 @@ class CommitPost(db.Model):
 
 
 class AddCommitForm(Form):
-    repo_name = fields.TextField('Repository Name',
-                                 validators=[validators.DataRequired()])
-    sha = fields.TextField('Sha-1 Hash',
-                           validators=[validators.Length(min=40, max=40)])
+    repo_name = fields.TextField(
+        'Repository Name', validators=[validators.DataRequired()])
+    sha = fields.TextField(
+        'Sha-1 Hash', validators=[validators.Length(min=40, max=40)])
+
+
+class UpdateNameForm(Form):
+    display_name = fields.TextField(
+        'Update your display name', validators=[validators.DataRequired()])
 
 
 @pages.route('/')
@@ -272,6 +277,22 @@ def add():
         return redirect(url_for('blog.account'))
 
     return render_template('blog-add.html', form=form)
+
+
+@blog.route('/account/name', methods=('GET', 'POST'))
+@login_required
+def name_edit():
+    form = UpdateNameForm(request.form)
+    if request.method == 'POST' and form.validate():
+        new_name, old_name = form.display_name.data, current_user.name
+        current_user.name = new_name
+        db.session.add(current_user)
+        db.session.commit()
+        flash('Display name updated: {} ➔ {}'.format(
+            old_name, new_name), 'info')
+        return redirect(url_for('blog.account'))
+
+    return render_template('name-edit.html', form=form)
 
 
 @blog.route('/<path:repo_name>/<hex>/unpost', subdomain='<blogger>', methods=['POST'])

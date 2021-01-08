@@ -40,10 +40,16 @@
   <p><a class="button" href="{{ url_for('blog.add') }}">Blog a commit manually</a></p>
 
   <h2>Your Account</h2>
-  <p>Done with your blog? You can delete it if you want. Sorry to see you go!</p>
+
+  <h3>Display name: {{ current_user.name }}</h3>
+  <p><a href="{{ url_for('blog.name_edit') }}">Edit display name</a></p>
+
+  <h3>Delete account</h3>
+  <p>Done with your blog? You can delete it if you want, and start over any time :)</p>
+  <p>Heads up, <strong>this action cannot be undone.</strong></p>
   <form method="post" action="{{ url_for('gh.delete_account') }}">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-    <p><button type="submit" class="sad" href="{{ url_for('gh.delete_account') }}">Delete Account :(</button></p>
+    <p><button type="submit" class="sad" href="{{ url_for('gh.delete_account') }}">Delete Account 💣</button></p>
   </form>
 
 {% endblock %}

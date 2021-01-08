@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+  <h1>commit --blog</h1>
+  
+  <h2>Edit your account name</h2>
+  <form method="post" action="">
+    {{ form.csrf_token }}
+    <div>
+      {% for error in form.display_name.errors %}
+        <p>Display name: {{ error }}</p>
+      {% endfor %}
+      {{ form.display_name.label }}
+      {{ form.display_name(value=current_user.name) }}
+    </div>
+    <div>
+      <button type="submit">Update</button>
+    </div>
+  </form>
+
+{% endblock %}
