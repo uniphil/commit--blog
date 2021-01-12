@@ -11,7 +11,7 @@
 
 from os import environ
 from urllib.parse import urlparse, urljoin, parse_qsl
-from werkzeug.contrib.atom import AtomFeed
+from feedwerk.atom import AtomFeed
 import dateutil.parser
 import re
 from requests.sessions import Session
