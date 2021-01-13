@@ -8,7 +8,7 @@ Flask-Script==2.0.6
 Flask-SQLAlchemy==2.4.4
 Flask-WTF==0.14.3
 gunicorn==20.0.4
-idna==2.10
+idna==2.09
 itsdangerous==1.1.0
 Jinja2==2.11.2
 MarkupSafe==1.1.1
