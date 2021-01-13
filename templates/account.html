@@ -47,7 +47,8 @@
   <h3>Delete account</h3>
   <p>Done with your blog? You can delete it if you want, and start over any time :)</p>
   <p>Heads up, <strong>this action cannot be undone.</strong></p>
-  <form method="post" action="{{ url_for('gh.delete_account') }}">
+  <form method="post" action="{{ url_for('gh.delete_account') }}"
+      onsubmit="return confirm('Delete your account? This action cannot be undone!');">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
     <p><button type="submit" class="sad" href="{{ url_for('gh.delete_account') }}">Delete Account 💣</button></p>
   </form>
