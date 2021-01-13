@@ -1,0 +1,13 @@
+name: Check for third-party dependency updates
+on: push
+
+jobs:
+  refreeze:
+    runs-on: ubuntu-latest
+    # name: 
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with: {python-version: 3.8}
+      - name: Refreeze dependencies and check the diff
+        run: ./freeze.sh
