@@ -3,8 +3,8 @@ set -eu
 msg() {
     word="${1-}"; shift
     case "$word" in
-        Create | Install | Update) COLOR='1;36' ;;  # green
-        Clean | Check)             COLOR='1;33' ;;  # yellow
+        Create | Install | Update) COLOR='1;35' ;;  # green
+        Clean | Fix | Check)       COLOR='1;33' ;;  # yellow
         Freeze)                    COLOR='1;36' ;;  # cyan
         Ohno)                      COLOR='1;31' ;;  # red
         -?*)                       COLOR='1;37' ;;  # white
@@ -19,7 +19,7 @@ etab() {
 }
 did_not_match() {
     msg Ohno the new freeze differs
-    diff -U1 requirements.freezing.txt requirements.txt | etab
+    diff -U1 requirements.txt requirements.freezing.txt | etab
     [ -t 1 ] || exit 1  # end here if we're not in an interactive shell
     msg Freeze these changes to requirements.txt?
     [[ "$(read -ep ' [yN] '; echo $REPLY)" == [Yy]* ]] || exit 1 && {
@@ -36,6 +36,9 @@ venv.freezing/bin/pip --disable-pip-version-check install -qr requirements.thawe
 
 msg Freeze packages in venv.freezing to requirements.freezing.txt
 venv.freezing/bin/pip freeze > requirements.freezing.txt
+
+msg Fix dulwich to use pure-python version
+sed -i'.bak' '/^dulwich==/ s/$/ --global-option="--pure"/' requirements.freezing.txt
 
 msg Clean up venv.freezing
 rm -fr venv.freezing/
