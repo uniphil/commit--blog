@@ -12,6 +12,7 @@
 from os import environ
 from urllib.parse import urlparse, urljoin, parse_qsl
 from feedwerk.atom import AtomFeed
+from datetime import datetime
 import dateutil.parser
 import re
 from requests.sessions import Session
@@ -29,6 +30,8 @@ from sqlalchemy import func
 from wtforms import fields, validators
 from flask_wtf import Form
 from flask_wtf.csrf import CsrfProtect
+
+import git
 
 
 GH_RAW_BASE = 'https://raw.githubusercontent.com'
@@ -246,15 +249,15 @@ def commit_post(blogger, repo_name, hex):
 def add():
     form = AddCommitForm(request.args)
     if any((form.repo_name.data, form.sha.data)) and form.validate():
-        commit_url = '/repos/{repo}/git/commits/{hex}'.format(
-                        repo=form.repo_name.data, hex=form.sha.data)
+        repo_url = f'https://github.com/{form.repo_name.data}.git'
+        git_commit = git.fetch_commit(repo_url, form.sha.data)
+
         with gh.AppSession() as session:
-            gh_commit = session.get(commit_url).json()
             repo, repo_created = Repo.get_or_create(form.repo_name.data)
             commit = CommitPost(
                 hex=form.sha.data,
-                message=gh_commit['message'],
-                datetime=dateutil.parser.parse(gh_commit['author']['date']),
+                message=git_commit.message.decode('utf-8'),
+                datetime=datetime.fromtimestamp(git_commit.author_time),
                 repo=repo,
                 blogger=current_user,
             )
