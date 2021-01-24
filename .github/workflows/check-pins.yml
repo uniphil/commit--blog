@@ -1,6 +1,7 @@
 name: Check for third-party dependency updates
 
 on:
+  push:
   schedule:
     - cron: '0 0 */3 * *'  # check every three days
 
