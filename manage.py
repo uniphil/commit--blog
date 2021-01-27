@@ -38,5 +38,21 @@ def list_blogs():
         print('{: 3d} {}'.format(len(blogger.commit_posts), blogger.username))
 
 
+@manager.command
+def grunserver():
+    import subprocess
+    try:
+        subprocess.run([
+            'gunicorn',
+            'wsgi:app',
+            '--no-sendfile',
+            '--workers=2',
+            '--bind=0.0.0.0:5000',
+            '--reload',
+        ])
+    except KeyboardInterrupt:
+        pass
+
+
 if __name__ == '__main__':
     manager.run()
