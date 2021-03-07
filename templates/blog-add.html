@@ -21,6 +21,13 @@
       {{ form.sha.label }}
       {{ form.sha }}
     </div>
+    <p>
+      {% for error in form.githubless.errors %}
+        <p>{{ error }}</p>
+      {% endfor %}
+      {{ form.githubless }}
+      {{ form.githubless.label }}
+    </p>
     <div>
       <button type="submit">Blog it</button>
     </div>

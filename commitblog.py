@@ -168,6 +168,8 @@ class AddCommitForm(Form):
         'Repository Name', validators=[validators.DataRequired()])
     sha = fields.TextField(
         'Sha-1 Hash', validators=[validators.Length(min=40, max=40)])
+    githubless = fields.BooleanField(
+        'Fetch with git instead of GitHub API (beta, may fail for large repositories)')
 
 
 class UpdateNameForm(Form):
@@ -244,41 +246,79 @@ def commit_post(blogger, repo_name, hex):
     return render_template('blog-post.html', post=post, blogger=blog_author)
 
 
+def add_without_github_mostly(form):
+    repo_url = f'https://github.com/{form.repo_name.data}.git'
+    git_commit = git.fetch_commit(repo_url, form.sha.data)
+
+    with gh.AppSession() as session:
+        repo, repo_created = Repo.get_or_create(form.repo_name.data)
+        commit = CommitPost(
+            hex=form.sha.data,
+            message=git_commit.message.decode('utf-8'),
+            datetime=datetime.fromtimestamp(git_commit.author_time),
+            repo=repo,
+            blogger=current_user,
+        )
+        if commit.get_body():
+            markdown_data = json.dumps(dict(
+                text=commit.get_body(),
+                mode='gfm',
+                context=form.repo_name.data))
+            commit.markdown_body = session.post(
+                '/markdown', data=markdown_data).text
+        else:
+            commit.markdown_body = ''
+    db.session.add(commit)
+    if repo_created:
+        db.session.add(repo)
+    try:
+        db.session.commit()
+    except IntegrityError:
+        flash('Already blogged!', 'info')
+    return redirect(url_for('blog.account'))
+
+
+def add_with_github_api(form):
+    commit_url = '/repos/{repo}/git/commits/{hex}'.format(
+        repo=form.repo_name.data, hex=form.sha.data)
+    with gh.AppSession() as session:
+        gh_commit = session.get(commit_url).json()
+        repo, repo_created = Repo.get_or_create(form.repo_name.data)
+        commit = CommitPost(
+            hex=form.sha.data,
+            message=gh_commit['message'],
+            datetime=dateutil.parser.parse(gh_commit['author']['date']),
+            repo=repo,
+            blogger=current_user,
+        )
+        if commit.get_body():
+            markdown_data = json.dumps(dict(
+                text=commit.get_body(),
+                mode='gfm',
+                context=form.repo_name.data))
+            commit.markdown_body = session.post(
+                '/markdown', data=markdown_data).text
+        else:
+            commit.markdown_body = ''
+    db.session.add(commit)
+    if repo_created:
+        db.session.add(repo)
+    try:
+        db.session.commit()
+    except IntegrityError:
+        flash('Already blogged!', 'info')
+    return redirect(url_for('blog.account'))
+
+
 @blog.route('/add')
 @login_required
 def add():
     form = AddCommitForm(request.args)
     if any((form.repo_name.data, form.sha.data)) and form.validate():
-        repo_url = f'https://github.com/{form.repo_name.data}.git'
-        git_commit = git.fetch_commit(repo_url, form.sha.data)
-
-        with gh.AppSession() as session:
-            repo, repo_created = Repo.get_or_create(form.repo_name.data)
-            commit = CommitPost(
-                hex=form.sha.data,
-                message=git_commit.message.decode('utf-8'),
-                datetime=datetime.fromtimestamp(git_commit.author_time),
-                repo=repo,
-                blogger=current_user,
-            )
-            if commit.get_body():
-                markdown_data = json.dumps(dict(
-                    text=commit.get_body(),
-                    mode='gfm',
-                    context=form.repo_name.data))
-                commit.markdown_body = session.post(
-                    '/markdown', data=markdown_data).text
-            else:
-                commit.markdown_body = ''
-        db.session.add(commit)
-        if repo_created:
-            db.session.add(repo)
-        try:
-            db.session.commit()
-        except IntegrityError:
-            flash('Already blogged!', 'info')
-        return redirect(url_for('blog.account'))
-
+        if form.githubless.data:
+            return add_without_github_mostly(form)
+        else:
+            return add_with_github_api(form)
     return render_template('blog-add.html', form=form)
 
 
