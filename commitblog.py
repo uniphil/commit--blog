@@ -31,6 +31,7 @@ GH_RAW_BASE = 'https://raw.githubusercontent.com'
 
 
 login_manager = LoginManager()
+account = Blueprint('account', __name__)
 pages = Blueprint('pages', __name__)
 
 
@@ -53,9 +54,9 @@ def hello():
     return render_template('hello.html')
 
 
-@blog.route('/account')
+@account.route('/account')
 @login_required
-def account():
+def dashboard():
     events_url = '/users/{0.username}/events/public'.format(current_user)
     with gh.AppSession() as session:
         events_resp = session.get(events_url)
@@ -103,7 +104,7 @@ def add_without_github_mostly(form):
         db.session.commit()
     except IntegrityError:
         flash('Already blogged!', 'info')
-    return redirect(url_for('blog.account'))
+    return redirect(url_for('account.dashboard'))
 
 
 def add_with_github_api(form):
@@ -135,12 +136,12 @@ def add_with_github_api(form):
         db.session.commit()
     except IntegrityError:
         flash('Already blogged!', 'info')
-    return redirect(url_for('blog.account'))
+    return redirect(url_for('account.dashboard'))
 
 
-@blog.route('/add')
+@account.route('/add')
 @login_required
-def add():
+def add_post():
     form = AddCommitForm(request.args)
     if any((form.repo_name.data, form.sha.data)) and form.validate():
         if form.githubless.data:
@@ -150,7 +151,7 @@ def add():
     return render_template('blog-add.html', form=form)
 
 
-@blog.route('/account/name', methods=('GET', 'POST'))
+@account.route('/account/name', methods=('GET', 'POST'))
 @login_required
 def name_edit():
     form = UpdateNameForm(request.form)
@@ -161,14 +162,14 @@ def name_edit():
         db.session.commit()
         flash('Display name updated: {} ➔ {}'.format(
             old_name, new_name), 'info')
-        return redirect(url_for('blog.account'))
+        return redirect(url_for('account.dashboard'))
 
     return render_template('name-edit.html', form=form)
 
 
-@blog.route('/<path:repo_name>/<hex>/unpost', methods=['POST'])
+@account.route('/<path:repo_name>/<hex>/unpost', methods=['POST'])
 @login_required
-def remove(repo_name, hex, blogger=None):
+def remove_post(repo_name, hex, blogger=None):
     repo = Repo.query.filter_by(full_name=repo_name).first() or abort(404)
     commit = CommitPost.query \
                 .filter_by(blogger=current_user, hex=hex, repo=repo) \
@@ -223,7 +224,8 @@ def create_app(config=None):
     login_manager.init_app(app)
     db.init_app(app)
     app.register_blueprint(pages)
-    app.register_blueprint(blog)
+    app.register_blueprint(account)
+    app.register_blueprint(blog, subdomain='<blogger>')
     app.register_blueprint(gh, url_prefix='/gh')
     CSRFProtect(app)
     return app

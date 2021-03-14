@@ -2,10 +2,11 @@ from feedwerk.atom import AtomFeed
 from flask import Blueprint, abort, render_template, request, url_for
 from models import Blogger, CommitPost, Repo
 
+
 blog = Blueprint('blog', __name__)
 
 
-@blog.route('/', subdomain='<blogger>')
+@blog.route('/')
 def list(blogger):
     blog_author = Blogger.from_subdomain(blogger) or abort(404)
     posts = CommitPost.query \
@@ -14,7 +15,7 @@ def list(blogger):
     return render_template('blog-list.html', posts=posts, blogger=blog_author)
 
 
-@blog.route('/feed', subdomain='<blogger>')
+@blog.route('/feed')
 def feed(blogger):
     blog_author = Blogger.from_subdomain(blogger) or abort(404)
     posts = CommitPost.query \
@@ -39,7 +40,7 @@ def feed(blogger):
     return feed.get_response()
 
 
-@blog.route('/<path:repo_name>/<hex>', subdomain='<blogger>')
+@blog.route('/<path:repo_name>/<hex>')
 def commit_post(blogger, repo_name, hex):
     blog_author = Blogger.from_subdomain(blogger) or abort(404)
     repo = Repo.query.filter_by(full_name=repo_name).first() or abort(404)

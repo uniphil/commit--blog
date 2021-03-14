@@ -20,10 +20,10 @@
         </td>
         <td>
           {% if event.post is none %}
-            <a class="button" href="{{ url_for('blog.add', repo_name=event.repo,
+            <a class="button" href="{{ url_for('account.add_post', repo_name=event.repo,
                                         sha=event.sha, csrf_token=csrf_token()) }}">Blog&nbsp;this</a>
           {% else %}
-            <form class="inline" method="post" action="{{ url_for('blog.remove',
+            <form class="inline" method="post" action="{{ url_for('account.remove_post',
                                         repo_name=event.post.repo.full_name, hex=event.sha) }}">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
               <button type="submit" class="sad">Unpost</button>
@@ -37,12 +37,12 @@
   </table>
   <h2>Add a specific commit</h2>
   <p>If you know the repository and sha-1 hash of a commit, you an add it directly</p>
-  <p><a class="button" href="{{ url_for('blog.add') }}">Blog a commit manually</a></p>
+  <p><a class="button" href="{{ url_for('account.add_post') }}">Blog a commit manually</a></p>
 
   <h2>Your Account</h2>
 
   <h3>Display name: {{ current_user.name }}</h3>
-  <p><a href="{{ url_for('blog.name_edit') }}">Edit display name</a></p>
+  <p><a href="{{ url_for('account.name_edit') }}">Edit display name</a></p>
 
   <h3>Delete account</h3>
   <p>Done with your blog? You can delete it if you want, and start over any time :)</p>

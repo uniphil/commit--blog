@@ -99,7 +99,7 @@ def authorized():
     blogger = Blogger.gh_get_or_create(session)
 
     login_user(blogger)
-    return redirect(next or url_for('blog.account'))
+    return redirect(next or url_for('account.dashboard'))
 
 
 @gh.route('/logout')
@@ -107,7 +107,7 @@ def logout():
     logout_user()
     referrer = request.referrer
     if referrer is None or \
-        referrer.startswith(url_for('blog.account', _external=True)):
+        referrer.startswith(url_for('account.dashboard', _external=True)):
         return redirect(url_for('pages.hello'))
     else:
         return redirect(referrer)

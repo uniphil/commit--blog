@@ -23,7 +23,7 @@
           {{ post.datetime | nice_date }}
         </time>
         {% if current_user.is_blogger(blogger) %}
-          <form class="inline" method="post" action="{{ url_for('blog.remove', blogger=blogger.username, repo_name=post.repo.full_name, hex=post.hex) }}">
+          <form class="inline" method="post" action="{{ url_for('account.remove_post', blogger=blogger.username, repo_name=post.repo.full_name, hex=post.hex) }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
             <button type="submit" class="sad">Unpost</button>
           </form>
