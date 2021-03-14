@@ -5,6 +5,9 @@ from sqlalchemy import func
 import re
 
 
+GH_RAW_BASE = 'https://raw.githubusercontent.com'
+
+
 db = SQLAlchemy()
 
 

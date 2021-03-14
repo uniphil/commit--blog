@@ -27,9 +27,6 @@ from known_git_hosts.github import gh
 import git
 
 
-GH_RAW_BASE = 'https://raw.githubusercontent.com'
-
-
 login_manager = LoginManager()
 account = Blueprint('account', __name__)
 pages = Blueprint('pages', __name__)
