@@ -10,27 +10,22 @@
 """
 
 from os import environ
-from urllib.parse import urlparse, urljoin, parse_qsl
 from feedwerk.atom import AtomFeed
 from datetime import datetime
 import dateutil.parser
-import re
-from requests.sessions import Session
-from requests.utils import default_user_agent
-from rauth.service import OAuth2Session, OAuth2Service
 from flask import (
-    Flask, Blueprint, request, session as client_session, flash,
+    Flask, Blueprint, request, flash,
     render_template, redirect, url_for, json, abort)
 from flask_login import (
-    LoginManager, login_user, logout_user, UserMixin, AnonymousUserMixin,
+    LoginManager, login_user,
     current_user, login_required)
-from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import func
 from wtforms import fields, validators
 from flask_wtf import Form
 from flask_wtf.csrf import CsrfProtect
 
+from models import db, message_parts, AnonymousUser, Blogger, Repo, CommitPost
+from known_git_hosts.github import gh
 import git
 
 
@@ -38,129 +33,8 @@ GH_RAW_BASE = 'https://raw.githubusercontent.com'
 
 
 login_manager = LoginManager()
-db = SQLAlchemy()
 pages = Blueprint('pages', __name__)
 blog = Blueprint('blog', __name__)
-gh = Blueprint('gh', __name__)
-
-
-def message_parts(commit_message):
-    parts = commit_message.split('\n', 1)
-    try:
-        return parts[0], parts[1]
-    except IndexError:
-        return parts[0], ''
-
-
-class AnonymousUser(AnonymousUserMixin):
-    """Implement convenient methods that are nice to use on current_user"""
-
-    username = 'anon'
-
-    def is_blogger(self, blogger):
-        return False
-
-
-class Blogger(db.Model, UserMixin):
-    id = db.Column(db.Integer, primary_key=True)
-    gh_id = db.Column(db.String(32), unique=True)
-    username = db.Column(db.String(39), unique=True)  # GH max is 39
-    name = db.Column(db.String(128))
-    avatar_url = db.Column(db.String(256))
-    access_token = db.Column(db.String(40))  # GH tokens seem to always be 40 chars
-
-    @classmethod
-    def gh_get_or_create(cls, session):
-        user_obj = session.get('user').json()
-        user = cls.query.filter_by(gh_id=str(user_obj['id'])).first()
-        if user is None:
-            user = cls(
-                gh_id=user_obj['id'],
-                username=user_obj['login'],
-                name=user_obj.get('name'),
-                avatar_url=user_obj.get('avatar_url'),
-                access_token=session.access_token,
-            )
-            db.session.add(user)
-            db.session.commit()
-        return user
-
-    @classmethod
-    def from_subdomain(cls, username):
-        """Handle casing issues with domains"""
-        return cls.query.filter(username.lower() == func.lower(cls.username)).first()
-
-    def is_blogger(self, blogger):
-        return (self == blogger)
-
-    def get_session(self):
-        return gh.oauth.get_session(token=self.access_token)
-
-    def __repr__(self):
-        return '<Blogger: {}>'.format(self.username)
-
-
-class Repo(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(128))
-    full_name = db.Column(db.String(180), unique=True)
-    description = db.Column(db.String(384))
-
-    @classmethod
-    def get_or_create(cls, repo_name):
-        created = False
-        repo = cls.query.filter_by(full_name=repo_name).first()
-        if repo is None:
-            repo = cls(full_name=repo_name)
-            created = True
-        return repo, created
-
-    def __repr__(self):
-        return '<Repo: {}>'.format(self.full_name)
-
-
-class CommitPost(db.Model):
-
-    __table_args__ = (db.UniqueConstraint('hex', 'repo_id'),)
-
-    id = db.Column(db.Integer, primary_key=True)
-    hex = db.Column(db.String(40))
-    message = db.Column(db.String)
-    markdown_body = db.Column(db.String)
-    datetime = db.Column(db.DateTime)
-    repo_id = db.Column(db.Integer, db.ForeignKey('repo.id'))
-    blogger_id = db.Column(db.Integer, db.ForeignKey('blogger.id'))
-
-    repo = db.relationship('Repo')
-    blogger = db.relationship('Blogger', backref=db.backref('commit_posts'))
-
-    def get_parts(self):
-        return message_parts(self.message)
-
-    def get_title(self):
-        return self.get_parts()[0]
-
-    def get_body(self, markdown=False):
-        if markdown:
-            return self.fix_gh_img(self.markdown_body)
-        else:
-            return self.get_parts()[1]
-
-    def fix_gh_img(self, html):
-        def repl(m):
-            path = m.groupdict()['path']
-            if '://' in path:
-                return m.group(0)
-            else:
-                fixed_path = '{base}/{repo}/{sha}/{path}'.format(
-                    base=GH_RAW_BASE, repo=self.repo.full_name, sha=self.hex,
-                    path=path)
-                return m.group(0).replace(path, fixed_path)
-
-        return re.sub(r'<img src="(?P<path>.*?)"', repl, html)
-
-    def __repr__(self):
-        return '<CommitPost: {}...>'.format(self.message[:16])
 
 
 class AddCommitForm(Form):
@@ -350,119 +224,6 @@ def remove(repo_name, hex, blogger=None):
     db.session.delete(commit)
     db.session.commit()
     return redirect(next)
-
-
-def useragentify(session):
-    """declare a specific user-agent for commit --blog"""
-    user_agent = default_user_agent('commit --blog')
-    session.headers.update({'User-Agent': user_agent})
-
-
-class GHAppSession(Session):
-    """A session object for app-authenticated GitHub API requests
-
-    Allows relative URLs from a base_url.
-
-    Injects the app id and secret instead of the user's (useless-for-no-scopes)
-    bearer token to make requests to public endpoints with the usual 5000 req
-    rate limit rules.
-    """
-
-    def __init__(self, base_url, client_id, client_secret):
-        super(GHAppSession, self).__init__()
-        useragentify(self)
-        self.base_url = base_url
-        self.client_id = client_id
-        self.client_secret = client_secret
-
-    def request(self, method, url, **req_kwargs):
-        # absolutify URL
-        if not bool(urlparse(url).netloc):
-            url = urljoin(self.base_url, url)
-
-        # inject app credentials
-        auth=(self.client_id, self.client_secret)
-
-        return super(GHAppSession, self).request(
-            method, url, auth=auth, **req_kwargs)
-
-
-class GHOAuthSession(OAuth2Session):
-    """An OAuth2 session for user authentication, with a nice UA header"""
-
-    def __init__(self, *args, **kwargs):
-        super(GHOAuthSession, self).__init__(*args, **kwargs)
-        useragentify(self)
-
-
-@gh.record
-def setup_github(state):
-    gh.BASE_URL = 'https://api.github.com/'
-    gh.oauth = OAuth2Service(
-        name='github',
-        base_url=gh.BASE_URL,
-        authorize_url='https://github.com/login/oauth/authorize',
-        access_token_url='https://github.com/login/oauth/access_token',
-        client_id=state.app.config['GITHUB_CLIENT_ID'],
-        client_secret=state.app.config['GITHUB_CLIENT_SECRET'],
-        session_obj=GHOAuthSession,
-    )
-    gh.AppSession = lambda: GHAppSession(
-        gh.BASE_URL,
-        client_id=state.app.config['GITHUB_CLIENT_ID'],
-        client_secret=state.app.config['GITHUB_CLIENT_SECRET'],
-    )
-
-
-@gh.route('/login')
-def login():
-    referrer = request.referrer
-    if referrer is None or \
-        referrer.startswith(url_for('pages.hello', _external=True)):
-        client_session['after_login_redirect'] = None
-    else:
-        client_session['after_login_redirect'] = referrer
-    auth_uri = gh.oauth.get_authorize_url()
-    return redirect(auth_uri)
-
-
-@gh.route('/authorized')
-def authorized():
-    # final stage of oauth login
-    next = client_session.pop('after_login_redirect', None)
-
-    if 'code' not in request.args:
-        return redirect(next or url_for('pages.hello', auth='sadface'))
-
-    session = gh.oauth.get_auth_session(data={'code': request.args['code']})
-    blogger = Blogger.gh_get_or_create(session)
-
-    login_user(blogger)
-    return redirect(next or url_for('blog.account'))
-
-
-@gh.route('/logout')
-def logout():
-    logout_user()
-    referrer = request.referrer
-    if referrer is None or \
-        referrer.startswith(url_for('blog.account', _external=True)):
-        return redirect(url_for('pages.hello'))
-    else:
-        return redirect(referrer)
-
-
-@gh.route('/delete-account', methods=['POST'])
-@login_required
-def delete_account():
-    for post in current_user.commit_posts:
-        db.session.delete(post)
-    db.session.delete(current_user)
-    # don't delete repos because they may be used by other users
-    # later maybe prune orphans
-    db.session.commit()
-    logout_user()
-    return redirect(url_for('pages.hello'))
 
 
 @login_manager.user_loader
