@@ -1,3 +1,5 @@
+bleach~=3.3.0
+bleach-whitelist~=0.0.11
 dulwich~=0.20.15 --global-option="--pure"
 feedwerk==0.0.2
 flask~=1.1.2
@@ -6,6 +8,9 @@ Flask-Script~=2.0.6
 flask-sqlalchemy~=2.4.4
 Flask-WTF~=0.14.3
 gunicorn~=20.0.4
+markdown~=3.3.4
+mdx-gh-links~=0.2
+pytest~=6.2.2
 python-dateutil~=2.8.1
 rauth~=0.7.3
 requests~=2.25.0

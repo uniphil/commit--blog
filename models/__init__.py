@@ -1,5 +1,6 @@
 from flask_login import AnonymousUserMixin, UserMixin
 from flask_sqlalchemy import SQLAlchemy
+from render_message import render_github
 from sqlalchemy import func
 import re
 
@@ -103,9 +104,14 @@ class CommitPost(db.Model):
     def get_title(self):
         return self.get_parts()[0]
 
-    def get_body(self, markdown=False):
+    def get_body(self, markdown=False, new_renderer=False):
         if markdown:
-            return self.fix_gh_img(self.markdown_body)
+            if new_renderer:
+                user, repo = self.repo.full_name.split('/', 1)
+                html = render_github(self.get_parts()[1], user, repo)
+            else:
+                html = self.markdown_body
+            return self.fix_gh_img(html)
         else:
             return self.get_parts()[1]
 
