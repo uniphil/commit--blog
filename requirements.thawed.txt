@@ -10,6 +10,7 @@ Flask-WTF~=0.14.3
 gunicorn~=20.0.4
 markdown~=3.3.4
 mdx-gh-links~=0.2
+newrelic~=6.2.0.156
 pytest~=6.2.2
 python-dateutil~=2.8.1
 rauth~=0.7.3
