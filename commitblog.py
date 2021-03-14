@@ -225,7 +225,10 @@ def create_app(config=None):
     db.init_app(app)
     app.register_blueprint(pages)
     app.register_blueprint(account)
-    app.register_blueprint(blog, subdomain='<blogger>')
+    if app.config['ENV'] == 'development':
+        app.register_blueprint(blog, url_prefix='/_subdomain:<blogger>')
+    else:
+        app.register_blueprint(blog, subdomain='<blogger>')
     app.register_blueprint(gh, url_prefix='/gh')
     CSRFProtect(app)
     return app

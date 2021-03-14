@@ -1,0 +1,3 @@
+python-dotenv~=0.15.0
+
+-r requirements.thawed.txt

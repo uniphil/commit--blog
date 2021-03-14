@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!venv/bin/python
 # -*- coding: utf-8 -*-
 """
     manage
@@ -9,6 +9,15 @@
 
 from flask_script import Manager
 from commitblog import create_app
+
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv(verbose=True)
+except ImportError:
+    from sys import stderr
+    print('python-dotenv not installed, not trying to load .env', file=stderr)
+    pass
 
 
 manager = Manager(create_app)
