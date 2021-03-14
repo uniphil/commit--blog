@@ -40,6 +40,7 @@ def list_blogs():
 
 @manager.command
 def grunserver():
+    """run locally in a prod-ish way with gunicorn"""
     import subprocess
     try:
         subprocess.run([
