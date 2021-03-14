@@ -22,7 +22,7 @@ from flask_login import (
 from sqlalchemy.exc import IntegrityError
 from wtforms import fields, validators
 from flask_wtf import Form
-from flask_wtf.csrf import CsrfProtect
+from flask_wtf.csrf import CSRFProtect
 
 from models import db, message_parts, AnonymousUser, Blogger, Repo, CommitPost
 from known_git_hosts.github import gh
@@ -243,6 +243,7 @@ def configure(app, config):
         HOST                    = get('HOST', '127.0.0.1'),
         PORT                    = int(get('PORT', 5000)),
         SQLALCHEMY_DATABASE_URI = get('DATABASE_URL', 'sqlite:///db'),
+        SQLALCHEMY_TRACK_MODIFICATIONS = False,
         GITHUB_CLIENT_ID        = get('GITHUB_CLIENT_ID'),
         GITHUB_CLIENT_SECRET    = get('GITHUB_CLIENT_SECRET'),
         CSRF_ENABLED            = get('CSRF_ENABLED', True),  # testing ONLY
@@ -268,5 +269,5 @@ def create_app(config=None):
     app.register_blueprint(pages)
     app.register_blueprint(blog)
     app.register_blueprint(gh, url_prefix='/gh')
-    CsrfProtect(app)
+    CSRFProtect(app)
     return app
