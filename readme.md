@@ -79,7 +79,7 @@ We’re still working on this part of the README. For now, you can [check out th
 
 4. Initialize the database
    ```bash
-   [phil@asdf:~/code/commit--blog]$ ./manage.py initdb
+   [phil@asdf:~/code/commit--blog]$ ./manage.py init_db
    ```
 
 5. Run it!!!
