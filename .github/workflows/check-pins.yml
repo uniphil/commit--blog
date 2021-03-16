@@ -1,14 +1,13 @@
 name: Check for third-party dependency updates
 
 on:
-  push:
   schedule:
     - cron: '0 0 */3 * *'  # check every three days
 
 jobs:
   refreeze:
     runs-on: ubuntu-latest
-    # name: 
+    name: "Re-freeze python dependencies"
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2

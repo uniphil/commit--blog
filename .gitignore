@@ -1,9 +1,13 @@
+# system
 .DS_Store
 
+# platform
+__pycache__/
 *.bak
 *.py[co]
-__pycache__/
 
-.env
+# application
 venv/
+.env
 db
+requirements.freezing.txt
