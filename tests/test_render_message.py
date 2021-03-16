@@ -17,12 +17,30 @@ def test_render_github_escapes_other_tags():
     xss = render_github('<script>;alert(1)</script>', 'uniphil', 'gotcha')
     assert xss == '&lt;script&gt;;alert(1)&lt;/script&gt;'
 
+
 def test_render_github_tags_people():
     out = render_github('sup @rileyjshaw', 'uniphil', 'commit--blog')
     expected = '<p>sup <a href="https://github.com/rileyjshaw" title="GitHub User: @rileyjshaw">@rileyjshaw</a></p>'
     assert out == expected
 
+
 def test_render_github_links_issues():
     out = render_github('as seen in #123...', 'uniphil', 'commit--blog')
     expected = '<p>as seen in <a href="https://github.com/uniphil/commit--blog/issues/123" title="GitHub Issue uniphil/commit--blog #123">#123</a>...</p>'
     assert out == expected
+
+
+def test_render_fenced():
+    out = render_github('''\
+```
+code in fences
+```
+''', 'uniphil', 'commit--blog')
+    assert '<code>' in out
+    assert 'codehilite' in out
+    hl = render_github('''\
+```python
+# ...no comment
+```
+''', 'uniphil', 'commit--blog')
+    assert 'class="c1"' in hl
