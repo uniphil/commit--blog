@@ -120,6 +120,13 @@ code {
   border-radius: 4px;
   color: #468;
 }
+.codehilite code {
+  padding: 0;
+  background: transparent;
+  border-width: 0;
+  border-radius: 0;
+  color: inherit;
+}
 
 .notice {
   padding: 0.5em 1em;

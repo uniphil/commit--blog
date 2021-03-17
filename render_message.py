@@ -1,6 +1,7 @@
 import bleach
 import markdown
 from bleach_whitelist import markdown_tags, markdown_attrs
+from collections import defaultdict
 from mdx_gh_links import GithubLinks
 
 
@@ -10,9 +11,9 @@ __version__ = f'{RENDER_CONFIG_VERSION}/markdown={markdown.__version__}'
 
 
 ok_tags = markdown_tags + ['div', 'pre']
-ok_attrs = dict(markdown_attrs)
-ok_attrs['div'] = ['class']
-ok_attrs['span'] = ['class']
+ok_attrs = defaultdict(list, **markdown_attrs)
+ok_attrs['div'].append('class')
+ok_attrs['span'].append('class')
 
 
 base_extensions = (
@@ -23,6 +24,8 @@ base_extensions = (
 
 
 def render_github(text, user, repo):
-    html = markdown.markdown(
-        text, extensions=base_extensions + (GithubLinks(user=user, repo=repo),))
+    extras = (
+        GithubLinks(user=user, repo=repo),
+    )
+    html = markdown.markdown(text, extensions=base_extensions + extras)
     return bleach.clean(html, ok_tags, ok_attrs)
