@@ -1,8 +1,8 @@
 from flask_login import AnonymousUserMixin, UserMixin
 from flask_sqlalchemy import SQLAlchemy
-from render_message import render_github
 from sqlalchemy import func
 import re
+import render_message
 
 
 GH_RAW_BASE = 'https://raw.githubusercontent.com'
@@ -94,6 +94,8 @@ class CommitPost(db.Model):
     hex = db.Column(db.String(40))
     message = db.Column(db.String)
     markdown_body = db.Column(db.String)
+    markdown_renderer = db.Column(
+        db.String, nullable=True, default=lambda: render_message.__version__)
     datetime = db.Column(db.DateTime)
     repo_id = db.Column(db.Integer, db.ForeignKey('repo.id'))
     blogger_id = db.Column(db.Integer, db.ForeignKey('blogger.id'))
@@ -101,20 +103,24 @@ class CommitPost(db.Model):
     repo = db.relationship('Repo')
     blogger = db.relationship('Blogger', backref=db.backref('commit_posts'))
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if text := self.get_body():
+            user, repo_name = self.repo.full_name.split('/', 1)
+            html = render_message.render_github(text, user, repo_name)
+            self.markdown_body = html
+        else:
+            self.markdown_body = ''
+
     def get_parts(self):
         return message_parts(self.message)
 
     def get_title(self):
         return self.get_parts()[0]
 
-    def get_body(self, markdown=False, new_renderer=False):
+    def get_body(self, markdown=False):
         if markdown:
-            if new_renderer:
-                user, repo = self.repo.full_name.split('/', 1)
-                html = render_github(self.get_parts()[1], user, repo)
-            else:
-                html = self.markdown_body
-            return self.fix_gh_img(html)
+            return self.fix_gh_img(self.markdown_body)
         else:
             return self.get_parts()[1]
 

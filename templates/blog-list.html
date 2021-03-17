@@ -30,7 +30,7 @@
         {% endif %}
       </header>
       <div class="post-body">
-        {{ post.get_body(markdown=True, new_renderer=(request.args.rr == '1'))|safe }}
+        {{ post.get_body(markdown=True)|safe }}
       </div>
     </article>
 

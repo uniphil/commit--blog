@@ -24,10 +24,9 @@ def feed(blogger):
     feed = AtomFeed('$ commits-by ' + (blog_author.name or blog_author.username),
                     feed_url=request.url, url=request.url_root)
     for post in posts:
-        new_renderer = request.args.get('rr') == '1'
         feed.add(
             post.get_title(),
-            post.get_body(markdown=True, new_renderer=new_renderer),
+            post.get_body(markdown=True),
             content_type='html',
             author=blog_author.name or blog_author.username,
             url=url_for('blog.commit_post', _external=True,
