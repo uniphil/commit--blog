@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block title %}$ --rm "{{ post.get_title() }}"{% endblock %}
+
+{% block content %}
+  <article>
+    <header>
+      <h1>{{ post.get_title() }} <small>{{ post.repo.full_name }}</small></h1>
+      <time datetime="{{ post.datetime.isoformat() }}">
+        {{ post.datetime | nice_date }}
+      </time>
+      {% if current_user.is_blogger(blogger) %}
+        <form class="inline" method="post" action="{{ url_for('account.remove_post', repo_name=post.repo.full_name, hex=post.hex, next=url_for('blog.list', blogger=current_user.username, _external=True)) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <button type="submit" class="sad">Unpost</button>
+        </form>
+        {% if post.can_rerender() %}
+          <a href="{{ url_for('account.rerender_preview', repo_name=post.repo.full_name, hex=post.hex) }}" class="button ooo" title="This post was rendered with a previous markdown configuration. If it has errors in its presentation, rerendering now might fix it.">rerender</a>
+        {% endif %}
+      {% endif %}
+    </header>
+    <div class="post-body">
+      <h3 class="rerender-title"><em>Are you sure you want to unpost this commit?</em></h3>
+      {{ post.get_body(markdown=True)|safe }}
+    </div>
+  </article>
+
+  <form method="post" action="{{ url_for('account.remove_post', repo_name=post.repo.full_name, hex=post.hex) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    <p>
+      <button type="submit" class="button sad">Unpost</button>
+      <a href="javascript:history.go(-1)">Cancel &amp; and go back</a>
+    </p>
+  </form>
+{% endblock %}
