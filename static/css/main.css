@@ -71,6 +71,17 @@ button.sad:hover,
   background: #846;
   color: #fff;
 }
+button.ooo,
+.button.ooo {
+  color: #486;
+  background: transparent;
+  border: 1px dotted #486;
+}
+button.ooo:hover,
+.button.ooo:hover {
+  background: #486;
+  color: #fff;
+}
 button,
 a.button {
   background: #468;
@@ -126,6 +137,8 @@ code {
   border-width: 0;
   border-radius: 0;
   color: inherit;
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 .notice {
@@ -187,4 +200,15 @@ code {
   padding: 0;
   position: absolute;
   width: 1px;
+}
+
+.rerender-preview-compare {
+  display: flex;
+  justify-content: space-between;
+}
+.rerender-preview-compare > div {
+  flex: 0 1 48%;
+}
+.rerender-title {
+  margin: 0.667em 0 1.333em;
 }

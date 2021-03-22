@@ -23,10 +23,13 @@
           {{ post.datetime | nice_date }}
         </time>
         {% if current_user.is_blogger(blogger) %}
-          <form class="inline" method="post" action="{{ url_for('account.remove_post', blogger=blogger.username, repo_name=post.repo.full_name, hex=post.hex) }}">
+          <form class="inline" method="post" action="{{ url_for('account.remove_post', repo_name=post.repo.full_name, hex=post.hex) }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
             <button type="submit" class="sad">Unpost</button>
           </form>
+          {% if post.can_rerender() %}
+            <a href="{{ url_for('account.rerender_preview', repo_name=post.repo.full_name, hex=post.hex) }}" class="button ooo" title="This post was rendered with a previous markdown configuration. If it has errors in its presentation, rerendering now might fix it.">rerender</a>
+          {% endif %}
         {% endif %}
       </header>
       <div class="post-body">
