@@ -19,7 +19,9 @@ itsdangerous==1.1.0
 Jinja2==2.11.3
 Markdown==3.3.4
 MarkupSafe==1.1.1
+mdx-breakless-lists==1.0.1
 mdx-gh-links==0.2
+mdx-linkify==2.1
 newrelic==6.2.0.156
 packaging==20.9
 pluggy==0.13.1

@@ -6,7 +6,7 @@ from mdx_gh_links import GithubLinks
 
 
 # increment for any update that changes rendered output
-RENDER_CONFIG_VERSION = 0.1
+RENDER_CONFIG_VERSION = '0.1.1'
 __version__ = f'{RENDER_CONFIG_VERSION}/markdown={markdown.__version__}'
 
 
@@ -20,6 +20,8 @@ base_extensions = (
     'codehilite',
     'fenced_code',
     'footnotes',
+    'mdx_linkify',
+    'mdx_breakless_lists',
 )
 
 

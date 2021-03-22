@@ -118,7 +118,7 @@ def add_post():
             commit = add_with_github_api(form, repo)
         db.session.add(commit)
         if repo_created:
-            db.session.app(repo)
+            db.session.add(repo)
         try:
             db.session.commit()
         except IntegrityError:
