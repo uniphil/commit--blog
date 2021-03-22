@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block title %}$ --title "{{ post.get_title() }}"{% endblock %}
+
+{% block content %}
+  <article>
+    <header>
+      <h1>{{ post.get_title() }} <small>{{ post.repo.full_name }}</small></h1>
+      <time datetime="{{ post.datetime.isoformat() }}">
+        {{ post.datetime | nice_date }}
+      </time>
+    </header>
+    <div class="rerender-preview-compare">
+      <div class="post-body">
+        <h3 class="rerender-title"><em>Previous render</em></h3>
+        {{ post.get_body(markdown=True)|safe }}
+      </div>
+      <div class="post-body">
+        <h3 class="rerender-title"><em>New rerender</em></h3>
+        {{ preview|safe }}
+      </div>
+    </div>
+  </article>
+
+  <form method="post" action="{{ url_for('account.rerender_preview', repo_name=post.repo.full_name, hex=post.hex) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    <div class="rerender-preview-compare">
+      <div>
+        <a href="javascript:history.go(-1)" class="button sad">✗ Stick with this version</a>
+      </div>
+      <div>
+        <button type="submit" class="">✓ Accept new render</button>
+      </div>
+    </div>
+  </form>
+{% endblock %}

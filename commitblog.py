@@ -142,7 +142,7 @@ def name_edit():
 
 @account.route('/<path:repo_name>/<hex>/unpost', methods=['POST'])
 @login_required
-def remove_post(repo_name, hex, blogger=None):
+def remove_post(repo_name, hex):
     repo = Repo.query.filter_by(full_name=repo_name).first() or abort(404)
     commit = CommitPost.query \
                 .filter_by(blogger=current_user, hex=hex, repo=repo) \
@@ -152,8 +152,52 @@ def remove_post(repo_name, hex, blogger=None):
     flash(f'Unposted commit: {commit.repo.full_name}/{commit.hex[:8]} ➔ 💨', 'info')
     next = request.args.get('next') \
             or request.referrer \
-            or url_for('.list', blogger=current_user.username)
+            or url_for('blog.list', blogger=current_user.username)
     return redirect(next)
+
+
+@account.route('/<path:repo_name>/<hex>/rerender', methods=('GET', 'POST'))
+@login_required
+def rerender_preview(repo_name, hex):
+    repo = Repo.query.filter_by(full_name=repo_name).first() or abort(404)
+    commit = CommitPost.query \
+                .filter_by(blogger=current_user, hex=hex, repo=repo) \
+                .first() or abort(404)
+
+    if request.method == 'POST':
+        commit.apply_rerender()
+        db.session.add(commit)
+        db.session.commit()
+        flash('✓ Applied new renderer', 'info')
+        next = request.args.get('next') \
+            or url_for('blog.commit_post', _external=True,
+                        blogger=current_user.username,
+                        repo_name=commit.repo.full_name,
+                        hex=commit.hex)
+        return redirect(next)
+
+    noop_message = None
+
+    if commit.can_rerender():
+        preview = commit.get_rerender_preview()
+        if preview is None:
+            noop_message = f'Commit rerender appears to be empty :/'
+        elif preview == commit.markdown_body:
+            noop_message = f'No change detected for this commit with the new render config'
+            commit.apply_rerender()
+            db.session.add(commit)
+            db.session.commit()
+    else:
+        noop_message = f'Commit seems to already be rendered with the latest renderer'
+
+    if noop_message is not None:
+        flash(noop_message, 'info')
+        next = request.args.get('next') \
+            or request.referrer \
+            or url_for('blog.list', blogger=current_user.username)
+        return redirect(next)
+
+    return render_template('rerender-preview.html', post=commit, preview=preview)
 
 
 @login_manager.user_loader

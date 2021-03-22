@@ -93,7 +93,7 @@ class CommitPost(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     hex = db.Column(db.String(40))
     message = db.Column(db.String)
-    markdown_body = db.Column(db.String)
+    markdown_body = db.Column(db.String, default=lambda: '')
     markdown_renderer = db.Column(
         db.String, nullable=True, default=lambda: render_message.__version__)
     datetime = db.Column(db.DateTime)
@@ -105,24 +105,20 @@ class CommitPost(db.Model):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        print('asdfasdf')
         if text := self.get_body():
             user, repo_name = self.repo.full_name.split('/', 1)
             html = render_message.render_github(text, user, repo_name)
             self.markdown_body = html
-        else:
-            self.markdown_body = ''
-
-    def get_parts(self):
-        return message_parts(self.message)
 
     def get_title(self):
-        return self.get_parts()[0]
+        return message_parts(self.message)[0]
 
     def get_body(self, markdown=False):
         if markdown:
             return self.fix_gh_img(self.markdown_body)
         else:
-            return self.get_parts()[1]
+            return message_parts(self.message)[1]
 
     def fix_gh_img(self, html):
         def repl(m):
@@ -136,6 +132,21 @@ class CommitPost(db.Model):
                 return m.group(0).replace(path, fixed_path)
 
         return re.sub(r'<img src="(?P<path>.*?)"', repl, html)
+
+    def can_rerender(self):
+        return self.markdown_renderer != render_message.__version__
+
+    def get_rerender_preview(self):
+        if text := self.get_body():
+            user, repo_name = self.repo.full_name.split('/', 1)
+            return render_message.render_github(text, user, repo_name)
+
+    def apply_rerender(self):
+        html = self.get_rerender_preview()
+        if html is None:
+            raise ValueError('rerender failed-- no content')
+        self.markdown_body = html
+        self.markdown_renderer = render_message.__version__
 
     def __repr__(self):
         return '<CommitPost: {}...>'.format(self.message[:16])
