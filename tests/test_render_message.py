@@ -44,3 +44,24 @@ code in fences
 ```
 ''', 'uniphil', 'commit--blog')
     assert 'class="c1"' in hl
+
+def test_regression_render_autolink():
+    out = render_github('for example: https://example.com.', 'uniphil', 'commit--blog')
+    expected = '<p>for example: <a href="https://example.com">https://example.com</a>.</p>'
+    assert out == expected
+
+def test_regression_render_lists():
+    out = render_github('''\
+ok:
+- here is a list but
+- i did not leave a blank line
+- hope it will not break
+''', 'uniphil', 'commit--blog')
+    expected = '''\
+<p>ok:</p>
+<ul>
+<li>here is a list but</li>
+<li>i did not leave a blank line</li>
+<li>hope it will not break</li>
+</ul>'''
+    assert out == expected
