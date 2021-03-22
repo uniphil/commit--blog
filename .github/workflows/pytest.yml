@@ -14,8 +14,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: venv
-          key:          ${{ runner.os }}-venv-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: ${{ runner.os }}-venv-
+          key: ${{ runner.os }}-venv-${{ hashFiles('**/requirements.txt') }}
       - run: python -m venv venv
         if: '!steps.cachevenv.outputs.cache-hit'
       - run: venv/bin/pip install -r requirements.txt
