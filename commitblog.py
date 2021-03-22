@@ -41,6 +41,10 @@ class AddCommitForm(Form):
         'Fetch with git instead of GitHub API (beta, may fail for large repositories)')
 
 
+class UnpostForm(Form):
+    """unposts a commit (form for csrf only)"""
+
+
 class UpdateNameForm(Form):
     display_name = fields.TextField(
         'Update your display name', validators=[validators.DataRequired()])
@@ -140,20 +144,20 @@ def name_edit():
     return render_template('name-edit.html', form=form)
 
 
-@account.route('/<path:repo_name>/<hex>/unpost', methods=['POST'])
+@account.route('/<path:repo_name>/<hex>/unpost', methods=('GET', 'POST'))
 @login_required
 def remove_post(repo_name, hex):
+    form = UnpostForm(request.form)
     repo = Repo.query.filter_by(full_name=repo_name).first() or abort(404)
     commit = CommitPost.query \
                 .filter_by(blogger=current_user, hex=hex, repo=repo) \
                 .first() or abort(404)
-    db.session.delete(commit)
-    db.session.commit()
-    flash(f'Unposted commit: {commit.repo.full_name}/{commit.hex[:8]} ➔ 💨', 'info')
-    next = request.args.get('next') \
-            or request.referrer \
-            or url_for('blog.list', blogger=current_user.username)
-    return redirect(next)
+    if request.method == 'POST' and form.validate():
+        db.session.delete(commit)
+        db.session.commit()
+        flash(f'Unposted commit: {commit.repo.full_name}/{commit.hex[:8]} ➔ 💨', 'info')
+        return redirect(url_for('blog.list', blogger=current_user.username))
+    return render_template('blog-unpost.html', post=commit, form=form)
 
 
 @account.route('/<path:repo_name>/<hex>/rerender', methods=('GET', 'POST'))
