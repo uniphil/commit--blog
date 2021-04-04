@@ -108,7 +108,7 @@ class CommitPost(db.Model):
         print('asdfasdf')
         if text := self.get_body():
             user, repo_name = self.repo.full_name.split('/', 1)
-            html = render_message.render_github(text, user, repo_name)
+            html = render_message.render_github(text, user, repo_name, self.hex)
             self.markdown_body = html
 
     def get_title(self):
@@ -116,22 +116,9 @@ class CommitPost(db.Model):
 
     def get_body(self, markdown=False):
         if markdown:
-            return self.fix_gh_img(self.markdown_body)
+            return self.markdown_body
         else:
             return message_parts(self.message)[1]
-
-    def fix_gh_img(self, html):
-        def repl(m):
-            path = m.groupdict()['path']
-            if '://' in path:
-                return m.group(0)
-            else:
-                fixed_path = '{base}/{repo}/{sha}/{path}'.format(
-                    base=GH_RAW_BASE, repo=self.repo.full_name, sha=self.hex,
-                    path=path)
-                return m.group(0).replace(path, fixed_path)
-
-        return re.sub(r'<img src="(?P<path>.*?)"', repl, html)
 
     def can_rerender(self):
         return self.markdown_renderer != render_message.__version__
@@ -139,7 +126,7 @@ class CommitPost(db.Model):
     def get_rerender_preview(self):
         if text := self.get_body():
             user, repo_name = self.repo.full_name.split('/', 1)
-            return render_message.render_github(text, user, repo_name)
+            return render_message.render_github(text, user, repo_name, self.hex)
 
     def apply_rerender(self):
         html = self.get_rerender_preview()
