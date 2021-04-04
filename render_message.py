@@ -9,7 +9,7 @@ from mdx_gh_links import GithubLinks
 
 
 # increment for any update that changes rendered output
-RENDER_CONFIG_VERSION = '0.2.0'
+RENDER_CONFIG_VERSION = '0.2.1'
 __version__ = f'{RENDER_CONFIG_VERSION}/markdown={markdown.__version__}'
 
 LINK_PREFIXES = ('www.', 'http://', 'https://', 'mailto:')
@@ -72,4 +72,4 @@ def render_github(text, user, repo, sha):
     extras = (GithubLinksAlsoImages(user=user, repo=repo, sha=sha),)
     html = markdown.markdown(text, extensions=base_extensions + extras)
     safe = bleach.clean(html, markdown_tags, allowed_attrs)
-    return bleach.linkify(safe, callbacks=[only_abs_link], skip_tags=['pre'])
+    return bleach.linkify(safe, callbacks=[only_abs_link], skip_tags=['code'])

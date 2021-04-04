@@ -89,3 +89,9 @@ def test_regression_only_proto_links():
     out = render_github('readme.md', 'uniphil', 'commit--blog', 'asdf')
     expected = '<p>readme.md</p>'
     assert out == expected
+
+
+def test_regression_no_linkify_in_code():
+    out = render_github('`https://example.com`', 'uniphil', 'commit--blog', 'asdf')
+    expected = '<p><code>https://example.com</code></p>'
+    assert out == expected
