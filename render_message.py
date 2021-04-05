@@ -3,20 +3,20 @@ import markdown
 from bleach_allowlist import markdown_tags
 from collections import defaultdict
 from functools import partial
-from markdown.extensions import Extension
+from markdown.extensions import Extension, codehilite
 from markdown.treeprocessors import Treeprocessor
 from mdx_gh_links import GithubLinks
 
 
 # increment for any update that changes rendered output
-RENDER_CONFIG_VERSION = '0.2.1'
+RENDER_CONFIG_VERSION = '0.2.2'
 __version__ = f'{RENDER_CONFIG_VERSION}/markdown={markdown.__version__}'
 
 LINK_PREFIXES = ('www.', 'http://', 'https://', 'mailto:')
 
 
 base_extensions = (
-    'codehilite',
+    codehilite.CodeHiliteExtension(guess_lang=False),
     'fenced_code',
     'footnotes',
     'mdx_breakless_lists',

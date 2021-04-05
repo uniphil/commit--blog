@@ -95,3 +95,13 @@ def test_regression_no_linkify_in_code():
     out = render_github('`https://example.com`', 'uniphil', 'commit--blog', 'asdf')
     expected = '<p><code>https://example.com</code></p>'
     assert out == expected
+
+
+def test_regression_no_guessing():
+    out = render_github('''\
+```
+const ANSWER = 42;
+```
+''', 'uniphil', 'commit--blog', 'asdf')
+    expected = '<div class="codehilite"><pre><span></span><code>const ANSWER = 42;\n</code></pre></div>'
+    assert out == expected
