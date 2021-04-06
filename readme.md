@@ -99,4 +99,4 @@ We’re still working on this part of the README. For now, you can [check out th
 
 ## License
 
-…coming soon?
+[GNU Affero General Public License](./license)
