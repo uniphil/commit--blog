@@ -24,7 +24,6 @@ from flask_wtf.csrf import CSRFProtect
 from blog import blog
 from models import db, message_parts, AnonymousUser, Blogger, Repo, CommitPost
 from known_git_hosts.github import gh
-import git
 
 
 login_manager = LoginManager()
@@ -37,8 +36,6 @@ class AddCommitForm(Form):
         'Repository Name', validators=[validators.DataRequired()])
     sha = fields.TextField(
         'Sha-1 Hash', validators=[validators.Length(min=40, max=40)])
-    githubless = fields.BooleanField(
-        'Fetch with git instead of GitHub API (beta, may fail for large repositories)')
 
 
 class UnpostForm(Form):
@@ -76,19 +73,6 @@ def dashboard():
     return render_template('account.html', events=commit_events)
 
 
-def add_without_github_mostly(form, repo):
-    repo_url = f'https://github.com/{form.repo_name.data}.git'
-    git_commit = git.fetch_commit(repo_url, form.sha.data)
-    commit = CommitPost(
-        hex=form.sha.data,
-        message=git_commit.message.decode('utf-8'),
-        datetime=datetime.fromtimestamp(git_commit.author_time),
-        repo=repo,
-        blogger=current_user,
-    )
-    return commit
-
-
 def add_with_github_api(form, repo):
     commit_url = '/repos/{repo}/git/commits/{hex}'.format(
         repo=form.repo_name.data, hex=form.sha.data)
@@ -112,10 +96,7 @@ def add_post():
     form = AddCommitForm(request.args)
     if any((form.repo_name.data, form.sha.data)) and form.validate():
         repo, repo_created = Repo.get_or_create(form.repo_name.data)
-        if form.githubless.data:
-            commit = add_without_github_mostly(form, repo)
-        else:
-            commit = add_with_github_api(form, repo)
+        commit = add_with_github_api(form, repo)
         db.session.add(commit)
         if repo_created:
             db.session.add(repo)

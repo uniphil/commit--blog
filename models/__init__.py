@@ -105,7 +105,6 @@ class CommitPost(db.Model):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        print('asdfasdf')
         if text := self.get_body():
             user, repo_name = self.repo.full_name.split('/', 1)
             html = render_message.render_github(text, user, repo_name, self.hex)
