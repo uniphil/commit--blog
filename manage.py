@@ -68,6 +68,7 @@ def grunserver():
             'wsgi:app',
             '--no-sendfile',
             '--workers=2',
+            '--worker-class=gevent',
             '--bind=0.0.0.0:5000',
             '--reload',
         ])
