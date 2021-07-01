@@ -22,6 +22,7 @@ def message_parts(commit_message):
 class AnonymousUser(AnonymousUserMixin):
     """Implement convenient methods that are nice to use on current_user"""
 
+    admin = False
     username = 'anon'
 
     def is_blogger(self, blogger):
@@ -30,6 +31,7 @@ class AnonymousUser(AnonymousUserMixin):
 
 class Blogger(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
+    admin = db.Column(db.Boolean, nullable=False, default=lambda: False)
     gh_id = db.Column(db.String(32), unique=True)
     username = db.Column(db.String(39), unique=True)  # GH max is 39
     name = db.Column(db.String(128))

@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+  <header>
+    <h1>blog --admin</h1>
+  </header>
+
+  <h3>Posts</h3>
+  <table>
+    <tr>
+      <th>id</th>
+      <th>date</th>
+      <th>author</th>
+      <th>repo</th>
+      <th>title</th>
+    </tr>
+  {% for post in posts %}
+    <tr>
+      <td>{{ post.id }}</td>
+      <td>{{ post.datetime | nice_date }}</td>
+      <td>
+        <a href="{{ url_for('blog.list', blogger=post.blogger.username) }}">
+          {{ post.blogger.username }}
+        </a>
+      </td>
+      <td>{{ post.repo.full_name }}</td>
+      <td>
+        <a href="{{ url_for('blog.commit_post', blogger=post.username, repo_name=post.repo.full_name, hex=post.hex) }}">
+          {{ post.get_title() }}
+        </a>
+      </td>
+    </tr>
+  {% endfor %}
+  </table>
+
+  <h3>Bloggers</h3>
+  <table>
+    <tr>
+      <th>id</th>
+      <th>admin?</th>
+      <th>username</th>
+      <th>posts</th>
+    </tr>
+  {% for author in authors %}
+    <tr>
+      <td>{{ author.id }}</td>
+      <td>{{ author.admin }}</td>
+      <td>
+        <a href="{{ url_for('blog.list', blogger=author.username) }}">
+          {{ author.username }}
+        </a>
+      </td>
+      <td>{{ author.commit_posts | length }}</td>
+    </tr>
+  {% endfor %}
+  </table>
+
+
+
+{% endblock %}

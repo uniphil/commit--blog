@@ -21,6 +21,7 @@ from wtforms import fields, validators
 from flask_wtf import Form
 from flask_wtf.csrf import CSRFProtect
 
+from admin import admin
 from blog import blog
 from models import db, message_parts, AnonymousUser, Blogger, Repo, CommitPost
 from known_git_hosts.github import gh
@@ -227,6 +228,7 @@ def create_app(config=None):
     db.init_app(app)
     app.register_blueprint(pages)
     app.register_blueprint(account)
+    app.register_blueprint(admin, url_prefix='/admin')
     if app.config['ENV'] == 'development':
         app.register_blueprint(blog, url_prefix='/_subdomain:<blogger>')
     else:
