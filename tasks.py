@@ -2,9 +2,14 @@ from flask import current_app
 from models import db, Repo, Task
 from sqlalchemy import func
 from sqlalchemy.exc import OperationalError
+import logging
 import pygit2
 import sys
 import time
+
+
+logging.basicConfig(
+    format='%(asctime)s %(levelname)s %(message)s', level=logging.DEBUG)
 
 
 def take_task(of_type=None, max_retry=3):
@@ -58,31 +63,31 @@ def clone(task):
 
 
 def run(task_type=None):
-    print('hello! i am a task runner.')
+    logging.info('hello! i am a task runner.')
     if task_type is None:
-        print(f'running tasks with handlers for:', ','.join(_task_handlers), file=sys.stderr)
+        logging.info(f'running tasks with handlers for: %s', ','.join(_task_handlers))
     else:
-        print(f'running for only {task_type} tasks', file=sys.stderr)
+        logging.info(f'running for only {task_type} tasks')
 
     for task in get_tasks(task_type):
         try:
             handler = _task_handlers[task.task]
         except KeyError:
-            print(f'handler not found for task {task.task}', file=sys.stderr)
+            logging.error(f'handler not found for task {task.task}')
             raise
-        print(f'found task {task.task} ({task.id}) task. handling...', file=sys.stderr)
+        logging.info(f'found task {task.task} ({task.id}) task. handling...')
         try:
             handler(task)
         except Exception as e:
-            print(f'oh no, task {task.task} errored out: {task}:\n{e}', file=sys.stderr)
+            logging.error(f'oh no, task {task.task} errored out: {task}:\n{e}')
         else:
             task.completed = func.now()
             db.session.add(task)
             try:
                 db.session.commit()
             except OperationalError as e:
-                print(f'oh no, task {task.task} completed, but committing completionerrored out: {task}:\n{e}', file=sys.stderr)
+                logging.error(f'oh no, task {task.task} completed, but committing completion errored out: {task}:\n{e}')
                 db.session.rollback()
             else:
-                print(f'\tcompleted task {task.task} ({task.id}). woo!', file=sys.stderr)
+                logging.info(f'\tcompleted task {task.task} ({task.id}). woo!')
 
