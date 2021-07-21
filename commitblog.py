@@ -23,7 +23,7 @@ from flask_wtf.csrf import CSRFProtect
 
 from admin import admin
 from blog import blog
-from models import db, message_parts, AnonymousUser, Blogger, Repo, CommitPost
+from models import db, message_parts, AnonymousUser, Blogger, Repo, CommitPost, Task
 from known_git_hosts.github import gh
 
 
@@ -101,6 +101,7 @@ def add_post():
         db.session.add(commit)
         if repo_created:
             db.session.add(repo)
+            db.session.add(Task(task='clone', details={'full_name': repo.full_name}))
         try:
             db.session.commit()
         except IntegrityError:

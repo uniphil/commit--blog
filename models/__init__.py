@@ -1,4 +1,4 @@
-from flask_login import AnonymousUserMixin, UserMixin
+from flask_login import AnonymousUserMixin, UserMixin, current_user
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func
 import re
@@ -138,3 +138,25 @@ class CommitPost(db.Model):
 
     def __repr__(self):
         return '<CommitPost: {}...>'.format(self.message[:16])
+
+
+class Task(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    task = db.Column(db.Text, nullable=False, index=True)
+    details = db.Column(db.JSON, nullable=False)  # blob o' json
+    created = db.Column(db.DateTime, nullable=False, server_default=func.now())
+    started = db.Column(db.DateTime, nullable=True, index=True)
+    completed = db.Column(db.DateTime, nullable=True, index=True)
+    creator_id = db.Column(db.Integer, db.ForeignKey('blogger.id'), default=lambda: current_user.id)
+
+    creator = db.relationship('Blogger')
+
+
+class TaskUpdate(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    state = db.Column(db.Text, nullable=False, index=True)
+    details = db.Column(db.JSON, nullable=True)  # task-specific blob
+    task_id = db.Column(db.Integer, db.ForeignKey('task.id'))
+    created = db.Column(db.DateTime, nullable=False, default=func.now)
+
+    task = db.relationship('Task', backref=db.backref('updates'))

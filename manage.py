@@ -65,6 +65,12 @@ def migrate(q):
 
 
 @manager.command
+def run_tasks():
+    import tasks
+    tasks.run()
+
+
+@manager.command
 def grunserver():
     """run locally in a prod-ish way with gunicorn"""
     import subprocess
