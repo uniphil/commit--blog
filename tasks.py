@@ -1,6 +1,8 @@
-from models import db, Task
+from flask import current_app
+from models import db, Repo, Task
 from sqlalchemy import func
 from sqlalchemy.exc import OperationalError
+import pygit2
 import sys
 import time
 
@@ -39,11 +41,20 @@ def handle_task(handler):
     return handler
 
 
+def _init_remote(repo, name, url):
+    remote = repo.remotes.create(name, url, "+refs/*:refs/*")
+    mirror_var = "remote.{}.mirror".format(name.decode())
+    repo.config[mirror_var] = True
+    return remote
 
 @handle_task
 def clone(task):
-    print('time to cloneeeeeee', task.details)
-
+    full_name = task.details['full_name']
+    repo = Repo.query.filter(Repo.full_name == full_name).one()
+    git_dir = current_app.config['GIT_REPO_DIR']
+    repo_dir = f'{git_dir}/{repo.id}.git'
+    pygit2.clone_repository(f'https://github.com/{full_name}', repo_dir,
+        bare=True, remote=_init_remote)
 
 
 def run(task_type=None):
@@ -58,17 +69,19 @@ def run(task_type=None):
         except KeyError:
             print(f'handler not found for task {task.task}', file=sys.stderr)
             raise
-        print(f'found {task.task} task. handling...', file=sys.stderr)
+        print(f'found task {task.task} ({task.id}) task. handling...', file=sys.stderr)
         try:
             handler(task)
         except Exception as e:
-            print(f'oh no, {task.task} errored out: {task}:\n{e}', file=sys.stderr)
+            print(f'oh no, task {task.task} errored out: {task}:\n{e}', file=sys.stderr)
         else:
             task.completed = func.now()
             db.session.add(task)
             try:
                 db.session.commit()
             except OperationalError as e:
-                print(f'oh no, {task.task} completed, but committing completionerrored out: {task}:\n{e}', file=sys.stderr)
+                print(f'oh no, task {task.task} completed, but committing completionerrored out: {task}:\n{e}', file=sys.stderr)
                 db.session.rollback()
+            else:
+                print(f'\tcompleted task {task.task} ({task.id}). woo!', file=sys.stderr)
 

@@ -208,6 +208,7 @@ def configure(app, config):
         GITHUB_CLIENT_ID        = get('GITHUB_CLIENT_ID'),
         GITHUB_CLIENT_SECRET    = get('GITHUB_CLIENT_SECRET'),
         CSRF_ENABLED            = get('CSRF_ENABLED', True),  # testing ONLY
+        GIT_REPO_DIR            = get('GIT_REPO_DIR', './repos'),
     )
     server_name = get('SERVER_NAME')
     if server_name is not None:
