@@ -56,6 +56,72 @@
   {% endfor %}
   </table>
 
+  <h3>Waiting tasks</h3>
+  <table>
+    <tr>
+      <th>id</th>
+      <th>task</th>
+      <th>creator</th>
+      <th>created</th>
+      <th>details</th>
+    </tr>
+  {% for task in waiting_tasks %}
+    <tr>
+      <td>{{ task.id }}</td>
+      <td>{{ task.task }}</td>
+      <td>{{ task.creator.username }}</td>
+      <td>{{ task.created }}</td>
+      <td>{{ task.details }}</td>
+    </tr>
+  {% endfor %}
+  </table>
+
+  <h3>Active tasks</h3>
+  <table>
+    <tr>
+      <th>id</th>
+      <th>task</th>
+      <th>creator</th>
+      <th>created</th>
+      <th>details</th>
+      <th>waited</th>
+    </tr>
+  {% for task in active_tasks %}
+    <tr>
+      <td>{{ task.id }}</td>
+      <td>{{ task.task }}</td>
+      <td>{{ task.creator.username }}</td>
+      <td>{{ task.created }}</td>
+      <td>{{ task.details }}</td>
+      <td>{{ task.started - task.created }}</td>
+    </tr>
+  {% endfor %}
+  </table>
+
+  <h3>Completed tasks</h3>
+  <table>
+    <tr>
+      <th>id</th>
+      <th>task</th>
+      <th>creator</th>
+      <th>created</th>
+      <th>details</th>
+      <th>waited</th>
+      <th>spent</th>
+    </tr>
+  {% for task in completed_tasks %}
+    <tr>
+      <td>{{ task.id }}</td>
+      <td>{{ task.task }}</td>
+      <td>{{ task.creator.username }}</td>
+      <td>{{ task.created }}</td>
+      <td>{{ task.details }}</td>
+      <td>{{ task.started - task.created }}</td>
+      <td>{{ task.completed - task.started }}</td>
+    </tr>
+  {% endfor %}
+  </table>
+
 
 
 {% endblock %}

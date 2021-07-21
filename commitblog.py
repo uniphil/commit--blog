@@ -23,7 +23,7 @@ from flask_wtf.csrf import CSRFProtect
 
 from admin import admin
 from blog import blog
-from models import db, message_parts, AnonymousUser, Blogger, Repo, CommitPost
+from models import db, message_parts, AnonymousUser, Blogger, Repo, CommitPost, Task
 from known_git_hosts.github import gh
 
 
@@ -101,6 +101,7 @@ def add_post():
         db.session.add(commit)
         if repo_created:
             db.session.add(repo)
+            db.session.add(Task(task='clone', details={'full_name': repo.full_name}))
         try:
             db.session.commit()
         except IntegrityError:
@@ -207,6 +208,7 @@ def configure(app, config):
         GITHUB_CLIENT_ID        = get('GITHUB_CLIENT_ID'),
         GITHUB_CLIENT_SECRET    = get('GITHUB_CLIENT_SECRET'),
         CSRF_ENABLED            = get('CSRF_ENABLED', True),  # testing ONLY
+        GIT_REPO_DIR            = get('GIT_REPO_DIR', './repos'),
     )
     server_name = get('SERVER_NAME')
     if server_name is not None:
