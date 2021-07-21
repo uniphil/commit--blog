@@ -58,6 +58,7 @@ def clone(task):
 
 
 def run(task_type=None):
+    print('hello! i am a task runner.')
     if task_type is None:
         print(f'running tasks with handlers for:', ','.join(_task_handlers), file=sys.stderr)
     else:
