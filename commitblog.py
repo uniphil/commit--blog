@@ -23,6 +23,7 @@ from flask_wtf.csrf import CSRFProtect
 
 from admin import admin
 from blog import blog
+from emails import mail
 from models import db, message_parts, AnonymousUser, Blogger, Repo, CommitPost, Task
 from known_git_hosts.github import gh
 
@@ -209,6 +210,11 @@ def configure(app, config):
         GITHUB_CLIENT_SECRET    = get('GITHUB_CLIENT_SECRET'),
         CSRF_ENABLED            = get('CSRF_ENABLED', True),  # testing ONLY
         GIT_REPO_DIR            = get('GIT_REPO_DIR', './repos'),
+        MAIL_SERVER             = get('MAIL_SERVER'),
+        MAIL_PORT               = int(get('MAIL_PORT', '2525')),
+        MAIL_USE_TLS            = get('MAIL_USE_TLS') != 'False',
+        MAIL_USERNAME           = get('MAIL_USERNAME'),
+        MAIL_PASSWORD           = get('MAIL_PASSWORD'),
     )
     server_name = get('SERVER_NAME')
     if server_name is not None:
@@ -228,6 +234,7 @@ def create_app(config=None):
     configure(app, config)
     login_manager.init_app(app)
     db.init_app(app)
+    mail.init_app(app)
     app.register_blueprint(pages)
     app.register_blueprint(account)
     app.register_blueprint(admin, url_prefix='/admin')

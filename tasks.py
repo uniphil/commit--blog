@@ -1,5 +1,5 @@
 from flask import current_app
-from models import db, Repo, Task
+from flask_mail import Message
 from sqlalchemy import func
 from sqlalchemy.exc import OperationalError
 import logging
@@ -7,9 +7,14 @@ import pygit2
 import sys
 import time
 
+from emails import mail, templates
+from models import db, Repo, Task
+
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)s %(message)s', level=logging.DEBUG)
+
+
 
 
 def take_task(of_type=None, max_retry=3):
@@ -60,6 +65,15 @@ def clone(task):
     repo_dir = f'{git_dir}/{repo.id}.git'
     pygit2.clone_repository(f'https://github.com/{full_name}', repo_dir,
         bare=True, remote=_init_remote)
+
+
+@handle_task
+def email(task):
+    recipients = [task.details['recipient']]
+    subject, sender, template = templates[task.details['message']]
+    body = template.format(**task.details['variables'])
+    msg = Message( subject, sender=sender, recipients=recipients, body=body)
+    mail.send(msg)
 
 
 def run(task_type=None):
