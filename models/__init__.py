@@ -71,6 +71,16 @@ class Blogger(db.Model, UserMixin):
     def get_session(self):
         return gh.oauth.get_session(token=self.access_token)
 
+    def get_email(self, include_unconfirmed=False):
+        email = Email.query \
+            .filter(Email.blogger == self) \
+            .order_by(Email.id.desc())
+
+        if not include_unconfirmed:
+            email = email.filter(Email.confirmed.is_not(None))
+
+        return email.first()
+
     def __repr__(self):
         return '<Blogger: {}>'.format(self.username)
 

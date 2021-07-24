@@ -75,7 +75,9 @@ def dashboard():
                 post = CommitPost.query.filter_by(hex=commit['sha']).first()
                 commit.update(title=title, body=body, post=post)
                 commit_events.append(commit)
-    return render_template('account.html', events=commit_events)
+
+    email = current_user.get_email(True)
+    return render_template('account.html', events=commit_events, email=email)
 
 
 def add_with_github_api(form, repo):

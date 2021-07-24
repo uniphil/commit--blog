@@ -65,6 +65,19 @@
   <h3>Display name: {{ current_user.name }}</h3>
   <p><a href="{{ url_for('account.name_edit') }}">Edit display name</a></p>
 
+  <h3>Email address</h3>
+  {% if email %}
+    <p>
+      <code>{{ email.address }}</code>
+      {% if email.confirmed %}
+        Confirmed!
+      {% else %}
+        <em>Not yet confirmed</em>
+      {% endif %}
+  {% else %}
+    <p><em>No email address added</em></p>
+  {% endif %}
+
   <h3>Delete account</h3>
   <p>Done with your blog? You can delete it if you want, and start over any time :)</p>
   <p>Heads up, <strong>this action cannot be undone.</strong></p>
