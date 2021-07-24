@@ -15,16 +15,19 @@ import dateutil.parser
 from flask import (
     Flask, Blueprint, request, flash,
     render_template, redirect, url_for, json, abort)
-from flask_login import LoginManager, current_user, login_required
+from flask_login import (
+    LoginManager, current_user, login_required, login_user, logout_user)
 from sqlalchemy.exc import IntegrityError
 from wtforms import fields, validators
 from flask_wtf import Form
 from flask_wtf.csrf import CSRFProtect
+from secrets import compare_digest
 
 from admin import admin
 from blog import blog
 from emails import mail
-from models import db, message_parts, AnonymousUser, Blogger, Repo, CommitPost, Task
+from models import (
+    db, message_parts, AnonymousUser, Blogger, Email, Repo, CommitPost, Task)
 from known_git_hosts.github import gh
 
 
@@ -110,6 +113,73 @@ def add_post():
         return redirect(url_for('account.dashboard'))
 
     return render_template('blog-add.html', form=form)
+
+
+@account.route('/account/add-gh-email', methods=('POST',))
+@login_required
+def add_gh_email():
+    if 'decline' in request.form:
+        current_user.gh_email_choice = False
+        db.session.add(current_user)
+        db.session.commit()
+    elif 'add_email' in request.form:
+        try:
+            address = request.form['gh_email'].lower()
+        except KeyError:
+            abort(400, 'missing gh_email address')
+        current_user.gh_email_choice = True
+        email = Email(address=address)
+        db.session.add(current_user)
+        db.session.add(email)
+        db.session.commit()
+        invite_task = Task(task='email', details={
+            'recipient': address,
+            'message': 'confirm_email',
+            'variables': {
+                'username': current_user.username,
+                'confirm_url': url_for('account.confirm_email', _external=True,
+                    address=address, token=email.token),
+            },
+        })
+        db.session.add(invite_task)
+        db.session.commit()
+        flash(f'Email added! Confirmation email sent to {address}', 'info')
+    else:
+        abort(400)
+    return redirect(url_for('account.dashboard'))
+
+
+@account.route('/account/confirm-email/<address>', methods=('GET', 'POST'))
+def confirm_email(address):
+    address = address.lower()
+
+    if request.method == 'POST':
+        try:
+            token = request.args['token']
+        except KeyError:
+            abort(400, 'missing token')
+
+        email = Email.query.filter(Email.address == address).first_or_404()
+        if not compare_digest(token, email.token):
+            abort(401)
+
+        if email.confirmed is None:
+            email.confirmed = datetime.now()
+            db.session.add(email)
+            db.session.commit()
+            flash('Email confirmed!', 'info')
+        else:
+            flash('Email already confirmed!', 'info')
+
+        if current_user.is_anonymous:
+            login_user(email.blogger)
+        elif current_user.id != email.blogger.id:
+            logout_user()
+        return redirect(url_for('account.dashboard'))
+
+    return render_template('account-email-confirm.html', address=address)
+
+
 
 
 @account.route('/account/name', methods=('GET', 'POST'))

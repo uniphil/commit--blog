@@ -1,0 +1,14 @@
+{% extends 'base-interstitial.html' %}
+
+{% block content %}
+
+<h3>Confirming email...</h3>
+
+<form name="confirm" action="{{ url_for('account.confirm_email', address=address, token=request.args.token) }}" method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    <p>If this page does not redirect automatically in a moment, <button type="submit">click here</button> to finish confirming.</p>
+</form>
+
+<script type="text/javascript">document.forms.confirm.submit();</script>
+
+{% endblock %}

@@ -72,7 +72,7 @@ def email(task):
     recipients = [task.details['recipient']]
     subject, sender, template = templates[task.details['message']]
     body = template.format(**task.details['variables'])
-    msg = Message( subject, sender=sender, recipients=recipients, body=body)
+    msg = Message(subject, sender=sender, recipients=recipients, body=body)
     mail.send(msg)
 
 

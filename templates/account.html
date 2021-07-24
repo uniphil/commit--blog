@@ -7,6 +7,27 @@
     <p>Your blog: <a href="{{ url_for('blog.list', blogger=current_user.username) }}">{{ current_user.username }}.commit--blog.com</a></p>
   </header>
 
+  {% if 'gh_email' in request.args and current_user.gh_email_choice is none %}
+    <div class="ask_about_gh_email">
+      <p>Would you like to add your email address <code>{{ request.args.gh_email }}</code> from GitHub?</p>
+      <p>Adding an email gives you another way to log in. It will not be shown to other visitors, and we'll never share it with third parties without your consent.</p>
+      <form action="{{ url_for('account.add_gh_email') }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+        <input type="hidden" name="gh_email" value="{{ request.args.gh_email }}" />
+        <p>
+          <button name="add_email" type="submit">Add email from GitHub</button>
+          <button name="decline" type="submit" class="sad">No thanks</button>
+          <small><a href="{{ url_for('account.dashboard', gh_email_later='') }} ">Decide later</a></small>
+        </p>
+      </form>
+    </div>
+  {% elif 'gh_email_later' in request.args %}
+    <div class="ask_about_gh_email">
+      <p>Ok, we'll ask about adding your email again next time you log in with GitHub :)</p>
+      <p><small><a href="{{ url_for('account.dashboard') }} ">Dismiss</a></small></p>
+    </div>
+  {% endif %}
+
   <h2>Your recent GitHub pushes:</h2>
   <p><strong>Note:</strong> only commits with more than just the title are shown in this list</p>
   <table class="recent-events">

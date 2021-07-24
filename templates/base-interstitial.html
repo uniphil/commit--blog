@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>{% block title %}$ commit --blog{% endblock %}</title>
+    <link rel="icon" href="{{ url_for('static', filename='img/dash-b.png') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/fonts.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" />
+  </head>
+  <body>
+    <div class="content">
+      {% block content %}
+      {% endblock %}
+    </div>
+  </body>
+</html>

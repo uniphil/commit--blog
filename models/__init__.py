@@ -1,6 +1,8 @@
 from flask_login import AnonymousUserMixin, UserMixin, current_user
 from flask_sqlalchemy import SQLAlchemy
+from secrets import randbelow, compare_digest
 from sqlalchemy import func
+from uuid import uuid4
 import re
 import render_message
 
@@ -37,6 +39,7 @@ class Blogger(db.Model, UserMixin):
     name = db.Column(db.String(128))
     avatar_url = db.Column(db.String(256))
     access_token = db.Column(db.String(40))  # GH tokens seem to always be 40 chars
+    gh_email_choice = db.Column(db.Boolean, nullable=True)
 
     @classmethod
     def gh_get_or_create(cls, session):
@@ -52,7 +55,10 @@ class Blogger(db.Model, UserMixin):
             )
             db.session.add(user)
             db.session.commit()
-        return user
+
+        email_to_ask = user_obj['email'].lower() if user.gh_email_choice is None else None
+
+        return user, email_to_ask
 
     @classmethod
     def from_subdomain(cls, username):
@@ -67,6 +73,18 @@ class Blogger(db.Model, UserMixin):
 
     def __repr__(self):
         return '<Blogger: {}>'.format(self.username)
+
+
+
+class Email(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    address = db.Column(db.Text, nullable=False, unique=True, index=True)
+    token = db.Column(db.Text, nullable=False, default=lambda: str(uuid4()))
+    created = db.Column(db.DateTime, nullable=False, server_default=func.now())
+    confirmed = db.Column(db.DateTime, nullable=True)
+    blogger_id = db.Column(db.Integer, db.ForeignKey('blogger.id'), nullable=False, default=lambda: current_user.id)
+
+    blogger = db.relationship('Blogger')
 
 
 class Repo(db.Model):
@@ -157,6 +175,6 @@ class TaskUpdate(db.Model):
     state = db.Column(db.Text, nullable=False, index=True)
     details = db.Column(db.JSON, nullable=True)  # task-specific blob
     task_id = db.Column(db.Integer, db.ForeignKey('task.id'))
-    created = db.Column(db.DateTime, nullable=False, default=func.now)
+    created = db.Column(db.DateTime, nullable=False, server_default=func.now())
 
     task = db.relationship('Task', backref=db.backref('updates'))
