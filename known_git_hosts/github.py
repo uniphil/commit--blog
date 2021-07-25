@@ -96,9 +96,11 @@ def authorized():
         return redirect(next or url_for('pages.hello', auth='sadface'))
 
     session = gh.oauth.get_auth_session(data={'code': request.args['code']})
-    blogger = Blogger.gh_get_or_create(session)
+    blogger, email_to_ask = Blogger.gh_get_or_create(session)
+    client_session['gh_email'] = email_to_ask
 
     login_user(blogger)
+
     return redirect(next or url_for('account.dashboard'))
 
 

@@ -11,3 +11,4 @@ venv/
 .env
 db
 requirements.freezing.txt
+repos/

@@ -71,6 +71,17 @@ def run_tasks():
 
 
 @manager.command
+def test_email():
+    import tasks
+    from models import Task
+    tasks.email(Task(details={
+        'message': 'hello',
+        'recipient': 'uniphil+recip@gmail.com',
+        'variables': {'value': 42},
+    }))
+
+
+@manager.command
 def grunserver():
     """run locally in a prod-ish way with gunicorn"""
     import subprocess

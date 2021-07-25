@@ -10,20 +10,25 @@
 """
 
 from os import environ
-from datetime import datetime
+from datetime import datetime, timedelta
 import dateutil.parser
 from flask import (
-    Flask, Blueprint, request, flash,
+    Flask, Blueprint, request, flash, session,
     render_template, redirect, url_for, json, abort)
-from flask_login import LoginManager, current_user, login_required
+from flask_login import (
+    LoginManager, current_user, login_required, login_user, logout_user)
 from sqlalchemy.exc import IntegrityError
 from wtforms import fields, validators
 from flask_wtf import Form
 from flask_wtf.csrf import CSRFProtect
+from secrets import compare_digest
 
 from admin import admin
 from blog import blog
-from models import db, message_parts, AnonymousUser, Blogger, Repo, CommitPost, Task
+from emails import mail
+from models import (
+    db, message_parts, AnonymousUser,
+    Blogger, Email, Repo, CommitPost, Task)
 from known_git_hosts.github import gh
 
 
@@ -31,8 +36,7 @@ login_manager = LoginManager()
 account = Blueprint('account', __name__)
 pages = Blueprint('pages', __name__)
 
-
-class AddCommitForm(Form):
+class CommitpostAddForm(Form):
     repo_name = fields.TextField(
         'Repository Name', validators=[validators.DataRequired()])
     sha = fields.TextField(
@@ -43,9 +47,16 @@ class UnpostForm(Form):
     """unposts a commit (form for csrf only)"""
 
 
-class UpdateNameForm(Form):
+class NameUpdateForm(Form):
     display_name = fields.TextField(
         'Update your display name', validators=[validators.DataRequired()])
+
+
+class EmailAddForm(Form):
+    address = fields.TextField(
+        'Email address', validators=[
+            validators.DataRequired(),
+            validators.Email(check_deliverability=True)])
 
 
 @pages.route('/')
@@ -56,9 +67,12 @@ def hello():
 @account.route('/account')
 @login_required
 def dashboard():
+    if 'gh_email_later' in request.args:
+        if session.pop('gh_email', None) is None:
+            return redirect(url_for('account.dashboard'))
     events_url = '/users/{0.username}/events/public'.format(current_user)
-    with gh.AppSession() as session:
-        events_resp = session.get(events_url)
+    with gh.AppSession() as gh_session:
+        events_resp = gh_session.get(events_url)
     events = events_resp.json()
     commit_events = []
     for event in events:
@@ -71,7 +85,9 @@ def dashboard():
                 post = CommitPost.query.filter_by(hex=commit['sha']).first()
                 commit.update(title=title, body=body, post=post)
                 commit_events.append(commit)
-    return render_template('account.html', events=commit_events)
+
+    email = current_user.get_email(True)
+    return render_template('account.html', events=commit_events, email=email)
 
 
 def add_with_github_api(form, repo):
@@ -94,7 +110,7 @@ def add_with_github_api(form, repo):
 @account.route('/add')
 @login_required
 def add_post():
-    form = AddCommitForm(request.args)
+    form = CommitpostAddForm(request.args)
     if any((form.repo_name.data, form.sha.data)) and form.validate():
         repo, repo_created = Repo.get_or_create(form.repo_name.data)
         commit = add_with_github_api(form, repo)
@@ -111,10 +127,123 @@ def add_post():
     return render_template('blog-add.html', form=form)
 
 
+def get_confirmation_email_task(email):
+    previous_confirmation_sends = Task.query \
+        .filter(Task.task == 'email') \
+        .filter(Task.creator == current_user) \
+        .filter(Task.details['recipient'].as_string() == email.address) \
+        .filter(Task.details['message'].as_string() == 'confirm_email')
+    if previous_confirmation_sends.count() >= 3:
+        abort(429, 'Max 3 confirmation email sends. Get in touch if you haven\'t received any!')
+    return Task(task='email', details={
+        'recipient': email.address,
+        'message': 'confirm_email',
+        'variables': {
+            'username': current_user.username,
+            'confirm_url': url_for('account.confirm_email', _external=True,
+                address=email.address, token=email.token),
+        },
+    })
+
+
+@account.route('/account/add-gh-email', methods=('POST',))
+@login_required
+def add_gh_email():
+    try:
+        address = session.pop('gh_email').lower()
+    except KeyError:
+        abort(400, 'missing gh_email address')
+
+    if 'decline' in request.form:
+        current_user.gh_email_choice = False
+        db.session.add(current_user)
+        db.session.commit()
+    elif 'add_email' in request.form:
+        current_user.gh_email_choice = True
+        email = Email(address=address)
+        db.session.add(current_user)
+        db.session.add(email)
+        try:
+            db.session.commit()
+        except IntegrityError:
+            abort(401, 'This email address may already be in use')
+        db.session.add(get_confirmation_email_task(email))
+        db.session.commit()
+        flash(f'Email added! Confirmation email will be sent to {address}', 'info')
+    else:
+        abort(400)
+    return redirect(url_for('account.dashboard'))
+
+
+@account.route('/account/email/new', methods=('GET', 'POST'))
+@login_required
+def add_email():
+    session.pop('gh_email', None)
+    form = EmailAddForm(request.form)
+    if form.validate_on_submit():
+        address = form.address.data.lower()
+        email = Email(address=address)
+        db.session.add(email)
+        try:
+            db.session.commit()
+        except IntegrityError:
+            abort(401, 'This email address may already be in use')
+        db.session.add(get_confirmation_email_task(email))
+        db.session.commit()
+        flash(f'Email added! Confirmation email will be sent to {address}', 'info')
+        return redirect(url_for('account.dashboard'))
+    return render_template('email-add.html', form=form)
+
+
+@account.route('/accounts/confirm-email/<address>/resend', methods=('POST',))
+@login_required
+def resend_confirmation_email(address):
+    address = address.lower()
+    email = Email.query \
+        .filter(Email.address == address) \
+        .filter(Email.blogger == current_user) \
+        .first_or_404()
+    db.session.add(get_confirmation_email_task(email))
+    db.session.commit()
+    flash(f'Confirmation email resent to {address}', 'info')
+    return redirect(url_for('account.dashboard'))
+
+
+@account.route('/account/confirm-email/<address>', methods=('GET', 'POST'))
+def confirm_email(address):
+    address = address.lower()
+
+    if request.method == 'POST':
+        try:
+            token = request.args['token']
+        except KeyError:
+            abort(400, 'missing token')
+
+        email = Email.query.filter(Email.address == address).first_or_404()
+        if not compare_digest(token, email.token):
+            abort(401)
+
+        if email.confirmed is None:
+            email.confirmed = datetime.now()
+            db.session.add(email)
+            db.session.commit()
+            flash('Email confirmed!', 'info')
+        else:
+            flash('Email already confirmed!', 'info')
+
+        if current_user.is_anonymous:
+            login_user(email.blogger)
+        elif current_user.id != email.blogger.id:
+            logout_user()
+        return redirect(url_for('account.dashboard'))
+
+    return render_template('account-email-confirm.html', address=address)
+
+
 @account.route('/account/name', methods=('GET', 'POST'))
 @login_required
 def name_edit():
-    form = UpdateNameForm(request.form)
+    form = NameUpdateForm(request.form)
     if request.method == 'POST' and form.validate():
         new_name, old_name = form.display_name.data, current_user.name
         current_user.name = new_name
@@ -209,6 +338,11 @@ def configure(app, config):
         GITHUB_CLIENT_SECRET    = get('GITHUB_CLIENT_SECRET'),
         CSRF_ENABLED            = get('CSRF_ENABLED', True),  # testing ONLY
         GIT_REPO_DIR            = get('GIT_REPO_DIR', './repos'),
+        MAIL_SERVER             = get('MAIL_SERVER'),
+        MAIL_PORT               = int(get('MAIL_PORT', '2525')),
+        MAIL_USE_TLS            = get('MAIL_USE_TLS') != 'False',
+        MAIL_USERNAME           = get('MAIL_USERNAME'),
+        MAIL_PASSWORD           = get('MAIL_PASSWORD'),
     )
     server_name = get('SERVER_NAME')
     if server_name is not None:
@@ -228,6 +362,7 @@ def create_app(config=None):
     configure(app, config)
     login_manager.init_app(app)
     db.init_app(app)
+    mail.init_app(app)
     app.register_blueprint(pages)
     app.register_blueprint(account)
     app.register_blueprint(admin, url_prefix='/admin')

@@ -212,3 +212,11 @@ code {
 .rerender-title {
   margin: 0.667em 0 1.333em;
 }
+
+.ask_about_gh_email {
+  border: 1px solid #468;
+  padding: 0 1em;
+  margin: 0 -1em;
+  border-radius: 0.25em;
+  background-color: aliceblue;
+}

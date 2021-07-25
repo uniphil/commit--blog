@@ -1,5 +1,5 @@
 from flask import current_app
-from models import db, Repo, Task
+from flask_mail import Message
 from sqlalchemy import func
 from sqlalchemy.exc import OperationalError
 import logging
@@ -7,9 +7,14 @@ import pygit2
 import sys
 import time
 
+from emails import mail, templates
+from models import db, Repo, Task
+
 
 logging.basicConfig(
     format='%(asctime)s %(levelname)s %(message)s', level=logging.DEBUG)
+
+
 
 
 def take_task(of_type=None, max_retry=3):
@@ -62,6 +67,15 @@ def clone(task):
         bare=True, remote=_init_remote)
 
 
+@handle_task
+def email(task):
+    recipients = [task.details['recipient']]
+    subject, sender, template = templates[task.details['message']]
+    body = template.format(**task.details['variables'])
+    msg = Message(subject, sender=sender, recipients=recipients, body=body)
+    mail.send(msg)
+
+
 def run(task_type=None):
     logging.info('hello! i am a task runner.')
     if task_type is None:
@@ -80,6 +94,7 @@ def run(task_type=None):
             handler(task)
         except Exception as e:
             logging.error(f'oh no, task {task.task} errored out: {task}:\n{e}')
+            logging.exception(e)
         else:
             task.completed = func.now()
             db.session.add(task)

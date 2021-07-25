@@ -7,6 +7,26 @@
     <p>Your blog: <a href="{{ url_for('blog.list', blogger=current_user.username) }}">{{ current_user.username }}.commit--blog.com</a></p>
   </header>
 
+  {% if 'gh_email' in session and current_user.gh_email_choice is none %}
+    <div class="ask_about_gh_email">
+      <p>Would you like to add your email address <code>{{ session.gh_email }}</code> from GitHub?</p>
+      <p>Adding an email gives you another way to log in. It will not be shown to other visitors, and we'll never share it with third parties without your consent.</p>
+      <form action="{{ url_for('account.add_gh_email') }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+        <p>
+          <button name="add_email" type="submit">Add email from GitHub</button>
+          <button name="decline" type="submit" class="sad">No thanks</button>
+          <small><a href="{{ url_for('account.dashboard', gh_email_later='') }} ">Decide later</a></small>
+        </p>
+      </form>
+    </div>
+  {% elif 'gh_email_later' in request.args %}
+    <div class="ask_about_gh_email">
+      <p>Ok, we'll ask about adding your email again next time you log in with GitHub :)</p>
+      <p><small><a href="{{ url_for('account.dashboard') }} ">Dismiss</a></small></p>
+    </div>
+  {% endif %}
+
   <h2>Your recent GitHub pushes:</h2>
   <p><strong>Note:</strong> only commits with more than just the title are shown in this list</p>
   <table class="recent-events">
@@ -43,6 +63,24 @@
 
   <h3>Display name: {{ current_user.name }}</h3>
   <p><a href="{{ url_for('account.name_edit') }}">Edit display name</a></p>
+
+  <h3>Email address</h3>
+  {% if email %}
+    <form action="{{ url_for('account.resend_confirmation_email', address=email.address) }}" method="POST">
+      <p>
+        <code>{{ email.address }}</code>
+        {% if email.confirmed %}
+          Confirmed!
+        {% else %}
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <em>Not yet confirmed</em> <small><button type="submit">Resend confirmation</button></small>
+        {% endif %}
+      </p>
+    </form>
+  {% else %}
+    <p><em>No email address added.</em></p>
+    <p><a class="button" href="{{ url_for('account.add_email') }}">Add an email address</a></p>
+  {% endif %}
 
   <h3>Delete account</h3>
   <p>Done with your blog? You can delete it if you want, and start over any time :)</p>
