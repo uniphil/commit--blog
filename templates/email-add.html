@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+  <h1>commit --blog</h1>
+  
+  <h2>Add an email address to your account</h2>
+
+  <p>Adding an email gives you another way to log in. It will not be shown to other visitors, and we'll never share it with third parties without your consent.</p>
+
+  <form method="post" action="">
+    {{ form.csrf_token }}
+    <div>
+      {% for error in form.address.errors %}
+        <p>Email address: {{ error }}</p>
+      {% endfor %}
+      {{ form.address.label }}
+      {{ form.address(placeholder='you@example.com') }}
+    </div>
+    <div>
+      <button type="submit">Add</button>
+    </div>
+  </form>
+
+{% endblock %}

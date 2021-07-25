@@ -13,7 +13,7 @@ from os import environ
 from datetime import datetime
 import dateutil.parser
 from flask import (
-    Flask, Blueprint, request, flash,
+    Flask, Blueprint, request, flash, session,
     render_template, redirect, url_for, json, abort)
 from flask_login import (
     LoginManager, current_user, login_required, login_user, logout_user)
@@ -52,6 +52,13 @@ class UpdateNameForm(Form):
         'Update your display name', validators=[validators.DataRequired()])
 
 
+class AddEmailForm(Form):
+    address = fields.TextField(
+        'Email address', validators=[
+            validators.DataRequired(),
+            validators.Email(check_deliverability=True)])
+
+
 @pages.route('/')
 def hello():
     return render_template('hello.html')
@@ -60,9 +67,12 @@ def hello():
 @account.route('/account')
 @login_required
 def dashboard():
+    if 'gh_email_later' in request.args:
+        if session.pop('gh_email', None) is None:
+            return redirect(url_for('account.dashboard'))
     events_url = '/users/{0.username}/events/public'.format(current_user)
-    with gh.AppSession() as session:
-        events_resp = session.get(events_url)
+    with gh.AppSession() as gh_session:
+        events_resp = gh_session.get(events_url)
     events = events_resp.json()
     commit_events = []
     for event in events:
@@ -117,38 +127,72 @@ def add_post():
     return render_template('blog-add.html', form=form)
 
 
+def get_confirmation_email_task(email):
+    previous_confirmation_sends = Task.query \
+        .filter(Task.task == 'email') \
+        .filter(Task.creator == current_user) \
+        .filter(Task.details['recipient'].as_string() == email.address) \
+        .filter(Task.details['message'].as_string() == 'confirm_email')
+    if previous_confirmation_sends.count() >= 3:
+        abort(429, 'Max 3 confirmation email sends. Get in touch if you haven\'t received any!')
+    return Task(task='email', details={
+        'recipient': email.address,
+        'message': 'confirm_email',
+        'variables': {
+            'username': current_user.username,
+            'confirm_url': url_for('account.confirm_email', _external=True,
+                address=email.address, token=email.token),
+        },
+    })
+
+
 @account.route('/account/add-gh-email', methods=('POST',))
 @login_required
 def add_gh_email():
+    try:
+        address = session.pop('gh_email').lower()
+    except KeyError:
+        abort(400, 'missing gh_email address')
+
     if 'decline' in request.form:
         current_user.gh_email_choice = False
         db.session.add(current_user)
         db.session.commit()
     elif 'add_email' in request.form:
-        try:
-            address = request.form['gh_email'].lower()
-        except KeyError:
-            abort(400, 'missing gh_email address')
         current_user.gh_email_choice = True
         email = Email(address=address)
         db.session.add(current_user)
         db.session.add(email)
+        try:
+            db.session.commit()
+        except IntegrityError:
+            abort(401, 'This email address may already be in use')
+        db.session.add(get_confirmation_email_task(email))
         db.session.commit()
-        invite_task = Task(task='email', details={
-            'recipient': address,
-            'message': 'confirm_email',
-            'variables': {
-                'username': current_user.username,
-                'confirm_url': url_for('account.confirm_email', _external=True,
-                    address=address, token=email.token),
-            },
-        })
-        db.session.add(invite_task)
-        db.session.commit()
-        flash(f'Email added! Confirmation email sent to {address}', 'info')
+        flash(f'Email added! Confirmation email will be sent to {address}', 'info')
     else:
         abort(400)
     return redirect(url_for('account.dashboard'))
+
+
+@account.route('/account/email/new', methods=('GET', 'POST'))
+@login_required
+def add_email():
+    session.pop('gh_email', None)
+    form = AddEmailForm(request.form)
+    if form.validate_on_submit():
+        address = form.address.data.lower()
+        email = Email(address=address)
+        db.session.add(email)
+        try:
+            db.session.commit()
+        except IntegrityError:
+            abort(401, 'This email address may already be in use')
+        db.session.add(get_confirmation_email_task(email))
+        db.session.commit()
+        flash(f'Email added! Confirmation email will be sent to {address}', 'info')
+        return redirect(url_for('account.dashboard'))
+    return render_template('email-add.html', form=form)
 
 
 @account.route('/accounts/confirm-email/<address>/resend', methods=('POST',))
@@ -159,28 +203,8 @@ def resend_confirmation_email(address):
         .filter(Email.address == address) \
         .filter(Email.blogger == current_user) \
         .first_or_404()
-    previous_confirmation_sends = Task.query \
-        .filter(Task.task == 'email') \
-        .filter(Task.creator == current_user) \
-        .filter(Task.details['recipient'].as_string() == address) \
-        .filter(Task.details['message'].as_string() == 'confirm_email')
-    if previous_confirmation_sends.count() >= 3:
-        abort(429, 'Max 3 confirmation email sends. Get in touch if you haven\'t received any!')
-
-    print('sql', previous_confirmation_sends)
-
-    new_invite_task = Task(task='email', details={
-        'recipient': address,
-        'message': 'confirm_email',
-        'variables': {
-            'username': current_user.username,
-            'confirm_url': url_for('account.confirm_email', _external=True,
-                address=address, token=email.token),
-        },
-    })
-    db.session.add(new_invite_task)
+    db.session.add(get_confirmation_email_task(email))
     db.session.commit()
-
     flash(f'Confirmation email resent to {address}', 'info')
     return redirect(url_for('account.dashboard'))
 

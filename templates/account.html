@@ -7,13 +7,12 @@
     <p>Your blog: <a href="{{ url_for('blog.list', blogger=current_user.username) }}">{{ current_user.username }}.commit--blog.com</a></p>
   </header>
 
-  {% if 'gh_email' in request.args and current_user.gh_email_choice is none %}
+  {% if 'gh_email' in session and current_user.gh_email_choice is none %}
     <div class="ask_about_gh_email">
-      <p>Would you like to add your email address <code>{{ request.args.gh_email }}</code> from GitHub?</p>
+      <p>Would you like to add your email address <code>{{ session.gh_email }}</code> from GitHub?</p>
       <p>Adding an email gives you another way to log in. It will not be shown to other visitors, and we'll never share it with third parties without your consent.</p>
       <form action="{{ url_for('account.add_gh_email') }}" method="POST">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-        <input type="hidden" name="gh_email" value="{{ request.args.gh_email }}" />
         <p>
           <button name="add_email" type="submit">Add email from GitHub</button>
           <button name="decline" type="submit" class="sad">No thanks</button>
@@ -79,7 +78,8 @@
       </p>
     </form>
   {% else %}
-    <p><em>No email address added</em></p>
+    <p><em>No email address added.</em></p>
+    <p><a class="button" href="{{ url_for('account.add_email') }}">Add an email address</a></p>
   {% endif %}
 
   <h3>Delete account</h3>
