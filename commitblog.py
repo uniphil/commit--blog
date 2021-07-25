@@ -26,6 +26,7 @@ from secrets import compare_digest
 from admin import admin
 from blog import blog
 from emails import mail
+import limits
 from models import (
     db, message_parts, AnonymousUser,
     Blogger, Email, Repo, CommitPost, Task)
@@ -133,8 +134,8 @@ def get_confirmation_email_task(email):
         .filter(Task.creator == current_user) \
         .filter(Task.details['recipient'].as_string() == email.address) \
         .filter(Task.details['message'].as_string() == 'confirm_email')
-    if previous_confirmation_sends.count() >= 3:
-        abort(429, 'Max 3 confirmation email sends. Get in touch if you haven\'t received any!')
+    if previous_confirmation_sends.count() >= limits.EMAIL_CONFIRMATION_SENDS:
+        abort(429, f'Max {limits.EMAIL_CONFIRMATION_SENDS} confirmation email sends. Get in touch if you haven\'t received any!')
     return Task(task='email', details={
         'recipient': email.address,
         'message': 'confirm_email',
