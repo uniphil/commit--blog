@@ -94,6 +94,7 @@ def run(task_type=None):
             handler(task)
         except Exception as e:
             logging.error(f'oh no, task {task.task} errored out: {task}:\n{e}')
+            logging.exception(e)
         else:
             task.completed = func.now()
             db.session.add(task)

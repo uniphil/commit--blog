@@ -85,7 +85,6 @@ class Blogger(db.Model, UserMixin):
         return '<Blogger: {}>'.format(self.username)
 
 
-
 class Email(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     address = db.Column(db.Text, nullable=False, unique=True, index=True)
@@ -95,6 +94,23 @@ class Email(db.Model):
     blogger_id = db.Column(db.Integer, db.ForeignKey('blogger.id'), nullable=False, default=lambda: current_user.id)
 
     blogger = db.relationship('Blogger')
+
+
+class TokenLogin(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    token = db.Column(db.Text, nullable=False, default=lambda: ''.join(str(randbelow(10)) for _ in range(9)))
+    medium = db.Column(db.Text, nullable=False)
+    address = db.Column(db.Text, nullable=False)
+    created = db.Column(db.DateTime, nullable=False, server_default=func.now())
+    attempts = db.Column(db.Integer, nullable=False, default=0)
+    completed = db.Column(db.DateTime, nullable=True)
+    blogger_id = db.Column(db.Integer, db.ForeignKey('blogger.id'), nullable=False)
+
+    blogger = db.relationship('Blogger')
+
+    @classmethod
+    def by_email(cls, email):
+        return cls(medium='email', address=email.address, blogger=email.blogger)
 
 
 class Repo(db.Model):

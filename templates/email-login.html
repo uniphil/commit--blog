@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+  <h1>commit --blog</h1>
+  
+  <h2>Sign in with email</h2>
+
+  <form method="post" action="">
+    {{ form.csrf_token }}
+    <div>
+      {% for error in form.address.errors %}
+        <p>Email address: {{ error }}</p>
+      {% endfor %}
+      {{ form.address.label }}
+      {{ form.address(placeholder='you@example.com') }}
+    </div>
+    <div>
+      <button type="submit">Sign in</button>
+    </div>
+  </form>
+
+{% endblock %}
