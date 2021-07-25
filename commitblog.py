@@ -28,7 +28,7 @@ from blog import blog
 from emails import mail
 from models import (
     db, message_parts, AnonymousUser,
-    Blogger, Email, TokenLogin, Repo, CommitPost, Task)
+    Blogger, Email, Repo, CommitPost, Task)
 from known_git_hosts.github import gh
 
 
@@ -59,117 +59,9 @@ class EmailAddForm(Form):
             validators.Email(check_deliverability=True)])
 
 
-class EmailLoginForm(Form):
-    address = fields.TextField(
-        'Email address', validators=[
-            validators.DataRequired(),
-            validators.Email(check_deliverability=False)])
-
-
-class TokenLoginForm(Form):
-    code = fields.TextField(
-        'Login code', validators=[validators.DataRequired()])
-
-
 @pages.route('/')
 def hello():
     return render_template('hello.html')
-
-
-def get_login_email_task(email, login_code):
-    previous_confirmation_sends = Task.query \
-        .filter(Task.task == 'email') \
-        .filter(Task.creator == email.blogger) \
-        .filter(Task.created > datetime.now() - timedelta(hours=24)) \
-        .filter(Task.details['recipient'].as_string() == email.address) \
-        .filter(Task.details['message'].as_string() == 'login_email')
-    if previous_confirmation_sends.count() >= 3:
-        abort(429, 'Max 3 email logins per day. Get in touch if you\'re not receiving them.')
-    return Task(task='email', details={
-        'recipient': email.address,
-        'message': 'login_email',
-        'variables': {
-            'username': email.blogger.username,
-            'login_code': login_code,
-        },
-    })
-
-
-@account.route('/account/login', methods=('GET', 'POST'))
-def email_sign_in():
-    if request.method == 'GET' and current_user.is_authenticated:
-        logout_user()
-    form = EmailLoginForm(request.form)
-    if form.validate_on_submit():
-        address = form.address.data.lower()
-        email = Email.query.filter(Email.address == address).first()
-        if email is None or email.confirmed is None:
-            flash('Email not found or not yet confirmed. Please sign in with GitHub.', 'info')
-            return redirect(url_for('pages.hello'))
-
-        previous_confirmation_sends = Task.query \
-            .filter(Task.task == 'email') \
-            .filter(Task.creator == email.blogger) \
-            .filter(Task.created > datetime.now() - timedelta(hours=24)) \
-            .filter(Task.details['recipient'].as_string() == email.address) \
-            .filter(Task.details['message'].as_string() == 'login_email')
-        if previous_confirmation_sends.count() >= 3:
-            abort(429, 'Max 3 email logins per day. Get in touch if you\'re not receiving them.')
-
-        token = TokenLogin.by_email(email)
-        db.session.add(token)
-        db.session.commit()
-
-        nice_token = '-'.join((token.token[:3], token.token[3:6], token.token[6:]))
-
-        login_email_task = Task(task='email', creator=email.blogger, details={
-            'recipient': email.address,
-            'message': 'login_email',
-            'variables': {
-                'username': email.blogger.username,
-                'token': nice_token,
-            },
-        })
-        db.session.add(login_email_task)
-        db.session.commit()
-
-        session['token_id'] = token.id
-        flash(f'sent login token to {address}', 'info')
-        return redirect(url_for('account.token_confirm'))
-
-    return render_template('email-login.html', form=form)
-
-
-@account.route('/account/login/token', methods=('GET', 'POST'))
-def token_confirm():
-    try:
-        token_id = session['token_id']
-    except KeyError:
-        abort(401, 'missing token')
-    token = TokenLogin.query.get(session['token_id'])
-    now = datetime.now()
-    if now - token.created > timedelta(minutes=10):
-        abort(401, 'token expired')
-    if token.completed is not None:
-        abort(401, 'this token has already been used')
-    if token.attempts >= 5:
-        abort(401, 'too many attempts')
-    form = TokenLoginForm(request.form)
-    if form.validate_on_submit():
-        token.attempts += 1
-        code = ''.join(filter(str.isdigit, form.code.data))
-        if compare_digest(code, token.token):
-            token.completed = now
-            login_user(token.blogger)
-            db.session.add(token)
-            db.session.commit()
-            flash('Welcome back!')
-            return redirect(url_for('account.dashboard'))
-        else:
-            db.session.add(token)
-            db.session.commit()
-            flash('Hmm, that code doesn\'t seem right', 'info')
-    return render_template('token-login.html', form=form)
 
 
 @account.route('/account')
