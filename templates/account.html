@@ -67,13 +67,17 @@
 
   <h3>Email address</h3>
   {% if email %}
-    <p>
-      <code>{{ email.address }}</code>
-      {% if email.confirmed %}
-        Confirmed!
-      {% else %}
-        <em>Not yet confirmed</em>
-      {% endif %}
+    <form action="{{ url_for('account.resend_confirmation_email', address=email.address) }}" method="POST">
+      <p>
+        <code>{{ email.address }}</code>
+        {% if email.confirmed %}
+          Confirmed!
+        {% else %}
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <em>Not yet confirmed</em> <small><button type="submit">Resend confirmation</button></small>
+        {% endif %}
+      </p>
+    </form>
   {% else %}
     <p><em>No email address added</em></p>
   {% endif %}

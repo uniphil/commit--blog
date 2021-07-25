@@ -151,6 +151,40 @@ def add_gh_email():
     return redirect(url_for('account.dashboard'))
 
 
+@account.route('/accounts/confirm-email/<address>/resend', methods=('POST',))
+@login_required
+def resend_confirmation_email(address):
+    address = address.lower()
+    email = Email.query \
+        .filter(Email.address == address) \
+        .filter(Email.blogger == current_user) \
+        .first_or_404()
+    previous_confirmation_sends = Task.query \
+        .filter(Task.task == 'email') \
+        .filter(Task.creator == current_user) \
+        .filter(Task.details['recipient'].as_string() == address) \
+        .filter(Task.details['message'].as_string() == 'confirm_email')
+    if previous_confirmation_sends.count() >= 3:
+        abort(429, 'Max 3 confirmation email sends. Get in touch if you haven\'t received any!')
+
+    print('sql', previous_confirmation_sends)
+
+    new_invite_task = Task(task='email', details={
+        'recipient': address,
+        'message': 'confirm_email',
+        'variables': {
+            'username': current_user.username,
+            'confirm_url': url_for('account.confirm_email', _external=True,
+                address=address, token=email.token),
+        },
+    })
+    db.session.add(new_invite_task)
+    db.session.commit()
+
+    flash(f'Confirmation email resent to {address}', 'info')
+    return redirect(url_for('account.dashboard'))
+
+
 @account.route('/account/confirm-email/<address>', methods=('GET', 'POST'))
 def confirm_email(address):
     address = address.lower()
