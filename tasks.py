@@ -15,8 +15,6 @@ logging.basicConfig(
     format='%(asctime)s %(levelname)s %(message)s', level=logging.DEBUG)
 
 
-
-
 def take_task(of_type=None, max_retry=3):
     q = Task.query \
         .order_by(Task.created.asc()) \
@@ -89,7 +87,7 @@ def run(task_type=None):
         except KeyError:
             logging.error(f'handler not found for task {task.task}')
             raise
-        logging.info(f'found task {task.task} ({task.id}) task. handling...')
+        logging.info(f'found task {task.task} ({task.id}) task. handling... {task}')
         try:
             handler(task)
         except Exception as e:

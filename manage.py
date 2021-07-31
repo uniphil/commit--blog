@@ -35,6 +35,13 @@ def reinit_db():
     db.drop_all()
     db.create_all()
 
+@manager.command
+def make_admin(username):
+    from commitblog import db, Blogger
+    blogger = Blogger.query.filter(Blogger.username == username).one()
+    blogger.admin = True
+    db.session.add(blogger)
+    db.session.commit()
 
 @manager.command
 def list_blogs():
