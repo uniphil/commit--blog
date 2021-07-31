@@ -16,17 +16,21 @@ from flask import (
     Flask, Blueprint, request, flash, session,
     render_template, redirect, url_for, json, abort)
 from flask_login import (
-    LoginManager, current_user, login_required, login_user, logout_user)
+    LoginManager, current_user, fresh_login_required, login_required,
+    login_user, logout_user)
 from sqlalchemy.exc import IntegrityError
 from wtforms import fields, validators
 from flask_wtf import Form
 from flask_wtf.csrf import CSRFProtect
+from passlib.context import CryptContext
 from secrets import compare_digest
 
 from admin import admin
 from blog import blog
 from emails import mail
 import limits
+import hashlib
+import urllib.request
 from models import (
     db, message_parts, AnonymousUser,
     Blogger, Email, Repo, CommitPost, Task)
@@ -36,6 +40,7 @@ from known_git_hosts.github import gh
 login_manager = LoginManager()
 account = Blueprint('account', __name__)
 pages = Blueprint('pages', __name__)
+crypt = CryptContext(schemes=["argon2"])
 
 class CommitpostAddForm(Form):
     repo_name = fields.TextField(
@@ -60,9 +65,68 @@ class EmailAddForm(Form):
             validators.Email(check_deliverability=True)])
 
 
+class LoginForm(Form):
+    address = fields.TextField(
+        'Email addess', validators=[validators.DataRequired()])
+    password = fields.PasswordField(
+        'PasswordForm', validators=[validators.DataRequired()])
+
+
+class PasswordForm(Form):
+    new_password = fields.PasswordField(
+        'New password', validators=[
+            validators.DataRequired(),
+            validators.Length(min=8),
+            validators.EqualTo('confirm_password', message='Passwords must match')])
+    confirm_password = fields.PasswordField(
+        'Confirm password', validators=[validators.DataRequired()])
+
+    def validate_new_password(form, field):
+        # https://haveibeenpwned.com/API/v3#PwnedPasswords
+        password = field.data
+        pwned_hash = hashlib.sha1(password.encode()).hexdigest().upper()
+        req = urllib.request.Request(f'https://api.pwnedpasswords.com/range/{pwned_hash[:5]}')
+        req.add_header('User-Agent', 'commit--blog.com password validator')
+        req.add_header('Add-Padding', 'true')
+        with urllib.request.urlopen(req, timeout=limits.SYNC_REQUREST_TIMEOUT) as f:
+            if f.status != 200:
+                raise validators.ValidationError('Error while checking password strength')
+            pwned_suffix = pwned_hash[5:].encode()
+            for line in f:
+                if line.startswith(pwned_suffix):
+                    raise validators.ValidationError('This password has appeared in breaches :(')
+
+
 @pages.route('/')
 def hello():
     return render_template('hello.html')
+
+
+@account.route('/account/login', methods=('GET', 'POST'))
+def login():
+    form = LoginForm(request.form)
+    login_failed = False
+    crypt_checked = False
+
+    if form.validate_on_submit():
+        if email := Email.query \
+            .filter(Email.address == form.address.data.lower()) \
+            .filter(Email.confirmed.isnot(None)) \
+            .first():
+            if pw_hash := email.blogger.password:
+                if crypt.verify(form.password.data, pw_hash):
+                    login_user(email.blogger)
+                    flash('Logged in!', 'info')
+                    return redirect(url_for('account.dashboard'))
+                else:
+                    crypt_checked = True
+
+        if crypt_checked is False:
+            crypt.dummy_verify()  # timing defence
+
+        login_failed = True
+
+    return render_template('email-login.html', form=form, login_failed=login_failed)
 
 
 @account.route('/account')
@@ -177,7 +241,7 @@ def add_gh_email():
 
 
 @account.route('/account/email/new', methods=('GET', 'POST'))
-@login_required
+@fresh_login_required
 def add_email():
     session.pop('gh_email', None)
     form = EmailAddForm(request.form)
@@ -239,6 +303,23 @@ def confirm_email(address):
         return redirect(url_for('account.dashboard'))
 
     return render_template('account-email-confirm.html', address=address)
+
+
+@account.route('/account/password', methods=('GET', 'POST'))
+@fresh_login_required
+def set_password():
+    form = PasswordForm(request.form)
+    if form.validate_on_submit():
+        if current_user.password is not None:
+            # todo: handle changing password
+            raise NotImplementedError()
+        new_password = form.new_password.data
+        current_user.password = crypt.hash(new_password)
+        db.session.add(current_user)
+        db.session.commit()
+        flash(f'Password set!', 'info')
+        return redirect(url_for('account.dashboard'))
+    return render_template('password-set.html', form=form)
 
 
 @account.route('/account/name', methods=('GET', 'POST'))

@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+  <h1>commit --blog</h1>
+  
+  <h2>Log in with email</h2>
+
+  {% if login_failed %}
+    <div>
+      <h3>Could not log in</h3>
+      <p>Please ensure</p>
+      <ul>
+        <li>you have added <strong>and verified</strong> this email address</li>
+        <li>the password you submitted matches the one you added</li> 
+      </ul>
+      <p>You can also <a href="{{ url_for('gh.login') }}">sign in with GitHub</a> instead</p>
+    </div>
+  {% endif %}
+
+  <form method="post" action="{{ url_for('account.login') }}">
+    {{ form.csrf_token }}
+    <div>
+      {% for error in form.address.errors %}
+        <p>Email address: {{ error }}</p>
+      {% endfor %}
+      {{ form.address.label }}
+      {{ form.address(placeholder='you@example.com') }}
+    </div>
+    <div>
+      {% for error in form.password.errors %}
+        <p>Email password: {{ error }}</p>
+      {% endfor %}
+      {{ form.password.label }}
+      {{ form.password(placeholder='********') }}
+    </div>
+    <div>
+      <button type="submit">Log in</button>
+    </div>
+  </form>
+
+{% endblock %}

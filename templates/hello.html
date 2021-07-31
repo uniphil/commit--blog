@@ -29,6 +29,8 @@
       <a href="{{ url_for('blog.list', blogger=current_user.username) }}" class="button">To the blog!</a>
     {% else %}
       <a href="{{ url_for('gh.login') }}" class="button">Sign in with GitHub</a>
+      or
+      <a href="{{ url_for('account.login') }}">Sign in with email</a>
     {% endif %}
   </p>
 
