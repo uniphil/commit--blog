@@ -1,13 +1,13 @@
 from flask import (
     Blueprint, redirect, request, session as client_session, url_for
 )
-from flask_login import login_required, login_user, logout_user
+from flask_login import current_user, login_required, login_user, logout_user
 from rauth.service import OAuth2Session, OAuth2Service
 from requests.sessions import Session
 from requests.utils import default_user_agent
 from urllib.parse import urlparse, urljoin
 
-from models import Blogger
+from models import Blogger, db
 
 
 gh = Blueprint('gh', __name__)
@@ -96,8 +96,23 @@ def authorized():
         return redirect(next or url_for('pages.hello', auth='sadface'))
 
     session = gh.oauth.get_auth_session(data={'code': request.args['code']})
-    blogger, email_to_ask = Blogger.gh_get_or_create(session)
-    client_session['gh_email'] = email_to_ask
+
+    user_obj = session.get('user').json()
+    blogger = Blogger.query.filter_by(gh_id=str(user_obj['id'])).first()
+
+    if blogger is None:
+        blogger = Blogger(
+            username=user_obj['login'],
+            name=user_obj.get('name'),
+            avatar_url=user_obj.get('avatar_url'),
+            gh_id=user_obj['id'],
+            gh_username=user_obj['login'],
+            gh_access_token=session.access_token)
+        db.session.add(blogger)
+        db.session.commit()
+
+    if blogger.gh_email_choice is None and blogger.get_email(True) is None:
+        client_session['gh_email'] = user_obj['email'].lower()
 
     login_user(blogger)
 

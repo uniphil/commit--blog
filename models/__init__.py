@@ -33,36 +33,22 @@ class AnonymousUser(AnonymousUserMixin):
 
 class Blogger(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
-    admin = db.Column(db.Boolean, nullable=False, default=lambda: False)
-    gh_id = db.Column(db.String(32), unique=True)
-    username = db.Column(db.String(39), unique=True)  # GH max is 39
+    created = db.Column(db.DateTime, nullable=False, server_default=func.now())
+    username = db.Column(db.Text, nullable=False, unique=True)
+    password = db.Column(db.Text, nullable=True)
+
     name = db.Column(db.String(128))
     avatar_url = db.Column(db.String(256))
-    access_token = db.Column(db.String(40))  # GH tokens seem to always be 40 chars
+    admin = db.Column(db.Boolean, nullable=False, default=lambda: False)
+
+    gh_id = db.Column(db.String(32), unique=True)
+    gh_username = db.Column(db.String(39), unique=True)  # GH max is 39
+    gh_access_token = db.Column(db.String(40))  # GH tokens seem to always be 40 chars
     gh_email_choice = db.Column(db.Boolean, nullable=True)
 
     @classmethod
-    def gh_get_or_create(cls, session):
-        user_obj = session.get('user').json()
-        user = cls.query.filter_by(gh_id=str(user_obj['id'])).first()
-        if user is None:
-            user = cls(
-                gh_id=user_obj['id'],
-                username=user_obj['login'],
-                name=user_obj.get('name'),
-                avatar_url=user_obj.get('avatar_url'),
-                access_token=session.access_token,
-            )
-            db.session.add(user)
-            db.session.commit()
-
-        email_to_ask = user_obj['email'].lower() if user.gh_email_choice is None else None
-
-        return user, email_to_ask
-
-    @classmethod
     def from_subdomain(cls, username):
-        """Handle casing issues with domains"""
+        # Handle casing issues with domains
         return cls.query.filter(username.lower() == func.lower(cls.username)).first()
 
     def is_blogger(self, blogger):
@@ -75,10 +61,8 @@ class Blogger(db.Model, UserMixin):
         email = Email.query \
             .filter(Email.blogger == self) \
             .order_by(Email.id.desc())
-
         if not include_unconfirmed:
             email = email.filter(Email.confirmed.is_not(None))
-
         return email.first()
 
     def __repr__(self):
@@ -117,7 +101,7 @@ class Repo(db.Model):
 
 class CommitPost(db.Model):
 
-    __table_args__ = (db.UniqueConstraint('hex', 'repo_id'),)
+    __table_args__ = (db.UniqueConstraint('hex', 'blogger_id', 'repo_id'),)
 
     id = db.Column(db.Integer, primary_key=True)
     hex = db.Column(db.String(40))
@@ -177,6 +161,9 @@ class Task(db.Model):
     creator_id = db.Column(db.Integer, db.ForeignKey('blogger.id'), default=lambda: current_user.id)
 
     creator = db.relationship('Blogger')
+
+    def __repr__(self):
+        return f'<Task {self.id}: {self.task} {self.creator=} {self.created=} {self.started=} {self.completed=}>'
 
 
 class TaskUpdate(db.Model):

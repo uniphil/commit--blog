@@ -82,6 +82,16 @@
     <p><a class="button" href="{{ url_for('account.add_email') }}">Add an email address</a></p>
   {% endif %}
 
+  {% if email %}
+    <h3>Password</h3>
+    {% if current_user.password is none %}
+      <p><em>No account password.</em></p>
+      <p><a class="button" href="{{ url_for('account.set_password') }}">Add a password</a></p>
+    {% else %}
+      <p>✓ Password set</p>
+    {% endif %}
+  {% endif %}
+
   <h3>Delete account</h3>
   <p>Done with your blog? You can delete it if you want, and start over any time :)</p>
   <p>Heads up, <strong>this action cannot be undone.</strong></p>
