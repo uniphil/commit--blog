@@ -108,7 +108,7 @@ def add_with_github_api(form, repo):
     return commit
 
 
-@account.route('/add')
+@account.route('/add', methods=('GET', 'POST'))
 @login_required
 def add_post():
     form = CommitpostAddForm(request.args)
@@ -335,6 +335,7 @@ def configure(app, config):
         PORT                    = int(get('PORT', 5000)),
         SQLALCHEMY_DATABASE_URI = get('DATABASE_URL', 'sqlite:///db'),
         SQLALCHEMY_TRACK_MODIFICATIONS = False,
+        TESTING                 = bool(get('TESTING', False)),
         GITHUB_CLIENT_ID        = get('GITHUB_CLIENT_ID'),
         GITHUB_CLIENT_SECRET    = get('GITHUB_CLIENT_SECRET'),
         CSRF_ENABLED            = get('CSRF_ENABLED', True),  # testing ONLY
