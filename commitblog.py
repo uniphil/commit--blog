@@ -71,7 +71,12 @@ def dashboard():
     if 'gh_email_later' in request.args:
         if session.pop('gh_email', None) is None:
             return redirect(url_for('account.dashboard'))
+
+    # Warning: 0.username used here *must* be trusted from github else a path
+    # traversal may get open for GETs as the app.
+    # TODO: move gh username to be known_git_provider-specific and out of here.
     events_url = '/users/{0.username}/events/public'.format(current_user)
+
     with gh.AppSession() as gh_session:
         events_resp = gh_session.get(events_url)
     events = events_resp.json()
