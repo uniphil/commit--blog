@@ -317,6 +317,17 @@ def rerender_preview(repo_name, hex):
     return render_template('rerender-preview.html', post=commit, preview=preview)
 
 
+@account.route('/logout')
+def logout():
+    logout_user()
+    referrer = request.referrer
+    if referrer is None or \
+        referrer.startswith(url_for('account.dashboard', _external=True)):
+        return redirect(url_for('pages.hello'))
+    else:
+        return redirect(referrer)
+
+
 @login_manager.user_loader
 def load_user(blogger_id):
     return Blogger.query.get(blogger_id)
