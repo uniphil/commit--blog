@@ -1,5 +1,6 @@
 import pytest
 import flask
+from models import Task
 
 
 def test_csrf_is_checked(app, app_ctx, client):
@@ -28,7 +29,7 @@ def test_account_unauthed(client, account_path, unauth_status):
     assert client.get(account_path).status_code == unauth_status
 
 
-def test_add_gh_email(login, gh_blogger):
+def test_add_gh_email(app_ctx, login, gh_blogger):
     with login(gh_blogger) as client:
         client.generate_csrf()
         no_email = client.post('/account/add-gh-email', data={
@@ -47,13 +48,20 @@ def test_add_gh_email(login, gh_blogger):
         assert ok_email.status_code == 302
         assert '/account' in ok_email.headers['Location']
 
-        email = gh_blogger.get_email()
-        assert email is not None
-        assert email.address == 'jel@example.com'
-        assert email.confirmed is None
+    email = gh_blogger.get_email()
+    assert email is not None
+    assert email.address == 'jel@example.com'
+    assert email.confirmed is None
+
+    email_confirms = Task.query \
+        .filter(Task.task == 'email') \
+        .filter(Task.creator == gh_blogger) \
+        .filter(Task.details['recipient'].as_string() == 'jel@example.com') \
+        .filter(Task.details['message'].as_string() == 'confirm_email')
+    assert email_confirms.count() == 1, 'one email task should be created'
 
 
-def test_add_email(no_csrf, login, gh_blogger):
+def test_add_email(app_ctx, login, gh_blogger):
     with login(gh_blogger) as client:
         client.get('/account/email/new')
         resp = client.post('/account/email/new', data={
@@ -67,3 +75,24 @@ def test_add_email(no_csrf, login, gh_blogger):
         assert email is not None
         assert email.address == 'jol@commit--blog.com'
         assert email.confirmed is None
+
+        email_confirms = Task.query \
+            .filter(Task.task == 'email') \
+            .filter(Task.creator == gh_blogger) \
+            .filter(Task.details['recipient'].as_string() == 'jol@commit--blog.com') \
+            .filter(Task.details['message'].as_string() == 'confirm_email')
+        assert email_confirms.count() == 1, 'one email task should be created'
+
+        # resend
+        resp = client.post('/accounts/confirm-email/jol@commit--blog.com/resend', data={
+            'csrf_token': client.csrf_token,
+        })
+        assert resp.status_code == 302, resp.data
+        assert '/account' in resp.headers['Location']
+
+        email_confirms = Task.query \
+            .filter(Task.task == 'email') \
+            .filter(Task.creator == gh_blogger) \
+            .filter(Task.details['recipient'].as_string() == 'jol@commit--blog.com') \
+            .filter(Task.details['message'].as_string() == 'confirm_email')
+        assert email_confirms.count() == 2, 'another email task should be created'
