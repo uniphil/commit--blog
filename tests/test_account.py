@@ -96,3 +96,16 @@ def test_add_email(app_ctx, login, gh_blogger):
             .filter(Task.details['recipient'].as_string() == 'jol@commit--blog.com') \
             .filter(Task.details['message'].as_string() == 'confirm_email')
         assert email_confirms.count() == 2, 'another email task should be created'
+
+        # verify
+        link = email_confirms.first().details['variables']['confirm_url']
+        get_page = client.get(link)
+        assert get_page.status_code == 200
+        assert email.token.encode() in get_page.data
+        resp = client.post('/account/confirm-email/jol@commit--blog.com', data={
+            'csrf_token': client.csrf_token,
+            'token': email.token,
+        })
+        assert resp.status_code == 302, resp.data
+        assert '/account' in resp.headers['location']
+        assert email.confirmed is True

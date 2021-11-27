@@ -221,10 +221,11 @@ def confirm_email(address):
 
     if request.method == 'POST':
         try:
-            token = request.args['token']
+            token = request.form['token']
         except KeyError:
             abort(400, 'missing token')
 
+        # TODO: reorder to avoid account existence check via timing info
         email = Email.query.filter(Email.address == address).first_or_404()
         if not compare_digest(token, email.token):
             abort(401)

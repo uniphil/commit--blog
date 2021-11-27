@@ -4,8 +4,9 @@
 
 <h3>Confirming email...</h3>
 
-<form name="confirm" action="{{ url_for('account.confirm_email', address=address, token=request.args.token) }}" method="POST">
+<form name="confirm" action="{{ url_for('account.confirm_email', address=address) }}" method="POST">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    <input type="hidden" name="token" value="{{ request.args.token }}" />
     <p>If this page does not redirect automatically in a moment, <button type="submit">click here</button> to finish confirming.</p>
 </form>
 
