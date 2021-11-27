@@ -77,7 +77,7 @@ class Blogger(db.Model, UserMixin):
             .order_by(Email.id.desc())
 
         if not include_unconfirmed:
-            email = email.filter(Email.confirmed.is_not(None))
+            email = email.filter(Email.confirmed is not None)
 
         return email.first()
 

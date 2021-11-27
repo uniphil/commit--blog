@@ -104,17 +104,6 @@ def authorized():
     return redirect(next or url_for('account.dashboard'))
 
 
-@gh.route('/logout')
-def logout():
-    logout_user()
-    referrer = request.referrer
-    if referrer is None or \
-        referrer.startswith(url_for('account.dashboard', _external=True)):
-        return redirect(url_for('pages.hello'))
-    else:
-        return redirect(referrer)
-
-
 @gh.route('/delete-account', methods=['POST'])
 @login_required
 def delete_account():

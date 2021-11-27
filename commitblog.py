@@ -71,7 +71,12 @@ def dashboard():
     if 'gh_email_later' in request.args:
         if session.pop('gh_email', None) is None:
             return redirect(url_for('account.dashboard'))
+
+    # Warning: 0.username used here *must* be trusted from github else a path
+    # traversal may get open for GETs as the app.
+    # TODO: move gh username to be known_git_provider-specific and out of here.
     events_url = '/users/{0.username}/events/public'.format(current_user)
+
     with gh.AppSession() as gh_session:
         events_resp = gh_session.get(events_url)
     events = events_resp.json()
@@ -108,7 +113,7 @@ def add_with_github_api(form, repo):
     return commit
 
 
-@account.route('/add')
+@account.route('/add', methods=('GET', 'POST'))
 @login_required
 def add_post():
     form = CommitpostAddForm(request.args)
@@ -216,10 +221,11 @@ def confirm_email(address):
 
     if request.method == 'POST':
         try:
-            token = request.args['token']
+            token = request.form['token']
         except KeyError:
             abort(400, 'missing token')
 
+        # TODO: reorder to avoid account existence check via timing info
         email = Email.query.filter(Email.address == address).first_or_404()
         if not compare_digest(token, email.token):
             abort(401)
@@ -317,6 +323,17 @@ def rerender_preview(repo_name, hex):
     return render_template('rerender-preview.html', post=commit, preview=preview)
 
 
+@account.route('/logout')
+def logout():
+    logout_user()
+    referrer = request.referrer
+    if referrer is None or \
+        referrer.startswith(url_for('account.dashboard', _external=True)):
+        return redirect(url_for('pages.hello'))
+    else:
+        return redirect(referrer)
+
+
 @login_manager.user_loader
 def load_user(blogger_id):
     return Blogger.query.get(blogger_id)
@@ -335,6 +352,7 @@ def configure(app, config):
         PORT                    = int(get('PORT', 5000)),
         SQLALCHEMY_DATABASE_URI = get('DATABASE_URL', 'sqlite:///db'),
         SQLALCHEMY_TRACK_MODIFICATIONS = False,
+        TESTING                 = bool(get('TESTING', False)),
         GITHUB_CLIENT_ID        = get('GITHUB_CLIENT_ID'),
         GITHUB_CLIENT_SECRET    = get('GITHUB_CLIENT_SECRET'),
         CSRF_ENABLED            = get('CSRF_ENABLED', True),  # testing ONLY
