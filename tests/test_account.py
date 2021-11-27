@@ -1,6 +1,7 @@
 import pytest
 import flask
-from models import Task
+from datetime import datetime
+from models import CommitPost, Repo, Task
 
 
 def test_csrf_is_checked(app, app_ctx, client):
@@ -27,6 +28,30 @@ def test_csrf_is_checked(app, app_ctx, client):
 ))
 def test_account_unauthed(client, account_path, unauth_status):
     assert client.get(account_path).status_code == unauth_status
+
+
+def test_add_commit(app_ctx, fake_github, login, gh_blogger):
+    sha = '050c55865e2bb1c96bf0910488d3d6d521eb8f4d'
+    with fake_github(), login(gh_blogger) as client:
+        # get dash with latest commits
+        resp = client.get('/account')
+        assert resp.status_code == 200
+        assert b'test some account stuff' in resp.data
+        assert sha.encode() in resp.data
+        assert b'unpost' not in resp.data  # fresh account, no posts yet
+
+        # add the latest
+        resp = client.get('/add', query_string={
+            'csrf_token': client.csrf_token,
+            'repo_name': 'uniphil/commit--blog',
+            'sha': sha,
+        })
+        assert resp.status_code == 302, resp.data
+        resp = client.get(resp.headers['location'])
+        assert b'unpost' in resp.data
+    post = CommitPost.query.filter(CommitPost.hex == sha).first()
+    assert post is not None
+    assert post.blogger is gh_blogger
 
 
 def test_add_gh_email(app_ctx, login, gh_blogger):
@@ -108,4 +133,4 @@ def test_add_email(app_ctx, login, gh_blogger):
         })
         assert resp.status_code == 302, resp.data
         assert '/account' in resp.headers['location']
-        assert email.confirmed is True
+        assert isinstance(email.confirmed, datetime) is True

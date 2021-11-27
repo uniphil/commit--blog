@@ -1,3 +1,4 @@
+import json
 import os
 import pytest
 from contextlib import contextmanager
@@ -6,6 +7,7 @@ from flask import g, session
 from flask_login import FlaskLoginClient, login_user
 from flask_wtf.csrf import generate_csrf as wtf_generate_csrf
 from models import Blogger, db
+from known_git_hosts.github import gh
 
 
 class BloggerTestClient(FlaskLoginClient):
@@ -31,6 +33,28 @@ class BloggerTestClient(FlaskLoginClient):
         if 'csrf_token' in g:
             self.csrf_token = g.csrf_token
         return res
+
+
+@contextmanager
+def get_fake_github():
+    tests_dir = os.path.dirname(__file__)
+    def fixture(name):
+        with open(os.path.join(tests_dir, f'fixtures/github/{name}.json')) as f:
+            return json.load(f)
+    class GithubFaker:
+        class FakeResponse:
+            def __init__(self, url):
+                self.url = url
+            def json(self):
+                json_responses = {
+                    '/users/uniphil/events/public': 'get.uniphil.events',
+                    '/repos/uniphil/commit--blog/git/commits/050c55865e2bb1c96bf0910488d3d6d521eb8f4d': 'get.uniphil.commit',
+                }
+                assert self.url in json_responses
+                return fixture(json_responses[self.url])
+        def get(self, url):
+            return self.FakeResponse(url)
+    yield GithubFaker()
 
 
 @pytest.fixture
@@ -76,7 +100,7 @@ def no_csrf(app):
 
 @pytest.fixture
 def gh_blogger(app_ctx):
-    u = Blogger(username='jim', name='Jem')
+    u = Blogger(username='uniphil', name='Jem')
     db.session.add(u)
     db.session.commit()
     return u
@@ -91,3 +115,18 @@ def login(app):
             yield c
 
     return login_client
+
+
+@pytest.fixture
+def fake_github():
+
+    @contextmanager
+    def github():
+        original_app_session = gh.AppSession
+        try:
+            gh.AppSession = get_fake_github
+            yield
+        finally:
+            gh.AppSession = original_app_session
+
+    return github
