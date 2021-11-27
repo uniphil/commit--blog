@@ -48,10 +48,24 @@ def test_add_commit(app_ctx, fake_github, login, gh_blogger):
         })
         assert resp.status_code == 302, resp.data
         resp = client.get(resp.headers['location'])
+        assert resp.status_code == 200
         assert b'unpost' in resp.data
-    post = CommitPost.query.filter(CommitPost.hex == sha).first()
-    assert post is not None
-    assert post.blogger is gh_blogger
+
+        post = CommitPost.query.filter(CommitPost.hex == sha).first()
+        assert post is not None
+        assert post.blogger is gh_blogger
+
+        # also try unposting
+        resp = client.post(f'/uniphil/commit--blog/{sha}/unpost', data={
+            'csrf_token': client.csrf_token,
+        })
+        assert resp.status_code == 302
+        resp = client.get(resp.headers['location'])
+        assert resp.status_code == 200
+        assert b'Unposted commit' in resp.data
+
+        post = CommitPost.query.filter(CommitPost.hex == sha).first()
+        assert post is None
 
 
 def test_add_gh_email(app_ctx, login, gh_blogger):
