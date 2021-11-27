@@ -59,6 +59,12 @@ def migrate(q):
     migs['q2'] = text("""
         alter table blogger
         add column admin boolean not null default false
+        check (admin in (0, 1))
+        """)
+    migs['q3'] = text("""
+        alter table blogger
+        add column gh_email_choice boolean check
+        (gh_email_choice in (0, 1))
         """)
     query = migs[q]
     db.engine.execute(query.execution_options(autocommit=True))
