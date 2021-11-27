@@ -37,9 +37,6 @@ venv.freezing/bin/pip --disable-pip-version-check install -qr requirements.thawe
 msg Freeze packages in venv.freezing to requirements.freezing.txt
 venv.freezing/bin/pip freeze > requirements.freezing.txt
 
-msg Fix dulwich to use pure-python version
-sed -i'.bak' '/^dulwich==/ s/$/ --global-option="--pure"/' requirements.freezing.txt
-
 msg Clean up venv.freezing
 rm -fr venv.freezing/
 

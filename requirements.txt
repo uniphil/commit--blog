@@ -4,7 +4,7 @@ bleach-allowlist==1.0.3
 blinker==1.4
 certifi==2021.10.8
 cffi==1.15.0
-charset-normalizer==2.0.7
+charset-normalizer==2.0.8
 click==7.1.2
 dnspython==2.1.0
 email-validator==1.1.3
