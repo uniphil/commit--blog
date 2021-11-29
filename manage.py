@@ -37,14 +37,13 @@ def reinit_db():
 
 
 @manager.command
-def list_blogs():
-    from sqlalchemy import func
+def make_admin(username):
     from commitblog import db, Blogger
-    bloggers = Blogger.query \
-                    .order_by(db.session.query(
-                        func.count(Blogger.commit_posts)))
-    for blogger in bloggers.all():
-        print('{: 3d} {}'.format(len(blogger.commit_posts), blogger.username))
+    hopeful = Blogger.query.filter(Blogger.username == username).first()
+    assert hopeful is not None, f'no blogger found for username "{username}"'
+    hopeful.admin = True
+    db.session.add(hopeful)
+    db.session.commit()
 
 
 @manager.command

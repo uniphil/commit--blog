@@ -20,18 +20,18 @@ from flask_login import (
 from sqlalchemy.exc import IntegrityError
 from wtforms import fields, validators
 from flask_wtf import Form
-from flask_wtf.csrf import CSRFProtect
 from secrets import compare_digest
 
-from admin import admin
 from blog import blog
+from admin import admin
+from oauth import oauth
 from emails import mail
 import limits
 from models import (
     db, message_parts, AnonymousUser,
     Blogger, Email, Repo, CommitPost, Task)
 from known_git_hosts.github import gh
-
+from wtf import csrf
 
 login_manager = LoginManager()
 account = Blueprint('account', __name__)
@@ -340,6 +340,7 @@ def load_user(blogger_id):
 
 
 login_manager.anonymous_user = AnonymousUser
+login_manager.login_view = 'gh.login'
 
 
 def configure(app, config):
@@ -362,7 +363,11 @@ def configure(app, config):
         MAIL_USE_TLS            = get('MAIL_USE_TLS') != 'False',
         MAIL_USERNAME           = get('MAIL_USERNAME'),
         MAIL_PASSWORD           = get('MAIL_PASSWORD'),
+        OAUTH2_REFRESH_TOKEN_GENERATOR = True,
+        USE_SESSION_FOR_NEXT    = True,
     )
+    app.config['AUTHLIB_INSECURE_TRANSPORT'] = app.debug
+
     server_name = get('SERVER_NAME')
     if server_name is not None:
         app.config['SERVER_NAME'] = server_name
@@ -379,16 +384,17 @@ def configure(app, config):
 def create_app(config=None):
     app = Flask('commitblog')
     configure(app, config)
+    csrf.init_app(app)
     login_manager.init_app(app)
     db.init_app(app)
     mail.init_app(app)
     app.register_blueprint(pages)
     app.register_blueprint(account)
+    app.register_blueprint(oauth, url_prefix='/oauth')
     app.register_blueprint(admin, url_prefix='/admin')
     if app.config['ENV'] == 'development':
         app.register_blueprint(blog, url_prefix='/_subdomain:<blogger>')
     else:
         app.register_blueprint(blog, subdomain='<blogger>')
     app.register_blueprint(gh, url_prefix='/gh')
-    CSRFProtect(app)
     return app
