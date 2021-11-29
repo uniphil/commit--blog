@@ -10,12 +10,7 @@ from authlib.integrations.flask_oauth2 import (
     AuthorizationServer,
     ResourceProtector,
 )
-from authlib.integrations.sqla_oauth2 import (
-#     create_query_client_func,
-#     create_save_token_func,
-#     create_revocation_endpoint,
-    create_bearer_token_validator,
-)
+from authlib.integrations.sqla_oauth2 import create_bearer_token_validator
 from authlib.oauth2 import OAuth2Error
 from authlib.oauth2.rfc6749 import grants
 from authlib.oauth2.rfc7636 import CodeChallenge
@@ -40,7 +35,6 @@ class AuthorizationCodeGrant(grants.AuthorizationCodeGrant):
     ]
 
     def save_authorization_code(self, code, request):
-        print('saving auth code for client', request.client.client_id)
         code_challenge = request.data.get('code_challenge')
         code_challenge_method = request.data.get('code_challenge_method')
         auth_code = OAuth2AuthorizationCode(
@@ -57,19 +51,16 @@ class AuthorizationCodeGrant(grants.AuthorizationCodeGrant):
         return auth_code
 
     def query_authorization_code(self, code, client):
-        print('getting auth code...', code, client)
         auth_code = OAuth2AuthorizationCode.query.filter_by(
             code=code, client_id=client.client_id).first()
         if auth_code and not auth_code.is_expired():
             return auth_code
-        print('boooo')
 
     def delete_authorization_code(self, authorization_code):
         db.session.delete(authorization_code)
         db.session.commit()
 
     def authenticate_user(self, authorization_code):
-        print('authenticate?', authorization_code)
         return Blogger.query.get(authorization_code.blogger_id)
 
 
@@ -97,9 +88,7 @@ def save_token(token, request):
         user_id = current_user.get_user_id()
     else:
         user_id = None
-    print('getting client')
     client = request.client
-    print('got client', client)
     tok = OAuth2Token(
         client_id=client.client_id,
         blogger_id=user_id,
@@ -121,7 +110,7 @@ def init_oauth2(state):
     app = state.app
     authorization.init_app(app)
 
-    # authorization.register_grant(grants.ClientCredentialsGrant)
+    authorization.register_grant(grants.ClientCredentialsGrant)
     authorization.register_grant(AuthorizationCodeGrant, [CodeChallenge(required=True)])
     authorization.register_grant(RefreshTokenGrant)
 
@@ -129,7 +118,6 @@ def init_oauth2(state):
     # revocation_cls = create_revocation_endpoint(db.session, OAuth2Token)
     # authorization.register_endpoint(revocation_cls)
 
-    # protect resource
     bearer_cls = create_bearer_token_validator(db.session, OAuth2Token)
     require_oauth.register_token_validator(bearer_cls())
 
@@ -164,8 +152,6 @@ def auth():
 @oauth.route('/token', methods=('POST',))
 @csrf.exempt
 def issue_token():
-    print('\n########\n\nissuing token...', request.form)
-    print('args:', request.args)
     return authorization.create_token_response()
 
 
