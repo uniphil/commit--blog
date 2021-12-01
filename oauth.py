@@ -22,17 +22,11 @@ oauth = Blueprint('oauth', __name__)
 
 SCOPES = {
     'blog': 'Create, view, and update posts',
-    'profile': 'Read and write public profile info',
-    'account': 'Manage private account data',
 }
 
 
 class AuthorizationCodeGrant(grants.AuthorizationCodeGrant):
-    TOKEN_ENDPOINT_AUTH_METHODS = [
-        'client_secret_basic',
-        'client_secret_post',
-        'none',
-    ]
+    TOKEN_ENDPOINT_AUTH_METHODS = ['none']
 
     def save_authorization_code(self, code, request):
         code_challenge = request.data.get('code_challenge')
@@ -110,7 +104,6 @@ def init_oauth2(state):
     app = state.app
     authorization.init_app(app)
 
-    authorization.register_grant(grants.ClientCredentialsGrant)
     authorization.register_grant(AuthorizationCodeGrant, [CodeChallenge(required=True)])
     authorization.register_grant(RefreshTokenGrant)
 

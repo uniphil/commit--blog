@@ -28,18 +28,11 @@ class ClientAddForm(FlaskForm):
         validators=[validators.DataRequired()])
     allowed_grant_types = fields.SelectMultipleField(
         'Allowed grant types',
-        choices=(
-            ('authorization_code', 'Act on behalf of users (authorization_code)'),
-            ('client_credentials', 'Act as the client app itself (client_credentials)'),
-        ),
+        choices=(('authorization_code', 'Act on behalf of users (authorization_code)'),),
         validators=[validators.DataRequired()])
     token_auth_method = fields.SelectField(
         'Token endpoint authentication method',
-        choices=(
-            ('none', 'None (for client-side apps)'),
-            ('client_secret_basic', 'Client secret basic (for server-side apps)'),
-            ('client_secret_post', 'Client secret post (for server-side apps)'),
-        ))
+        choices=(('none', 'None (for client-side apps)'),))
 
 
 admin = Blueprint('admin', __name__)

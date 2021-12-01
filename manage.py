@@ -47,6 +47,28 @@ def make_admin(username):
 
 
 @manager.command
+def register_cli_client():
+    from time import time
+    from commitblog import db
+    from models.auth import OAuth2Client
+    client = OAuth2Client(
+        client_id='commit--cli',
+        client_id_issued_at=int(time()),
+        client_secret = '')
+    client.set_client_metadata({
+        'client_name': 'commit--blog cli',
+        'client_uri': 'https://commit--blog.com/cli',
+        'grant_types': ['authorization_code'],
+        'redirect_uris': ['http://localhost:33205/oauth/authorized'],
+        'response_types': ['code'],
+        'scope': 'blog',
+        'token_endpoint_auth_method': 'none',
+    })
+    db.session.add(client)
+    db.session.commit()
+
+
+@manager.command
 def migrate(q):
     from commitblog import db
     from sqlalchemy.sql import text

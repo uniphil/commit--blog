@@ -12,6 +12,7 @@ class OAuth2Client(db.Model, OAuth2ClientMixin):
     __tablename__ = 'oauth2_client'
 
     id = db.Column(db.Integer, primary_key=True)
+    client_id = db.Column(db.String(48), index=True, unique=True)  # override to force unique
     dev_id = db.Column(db.Integer, db.ForeignKey('blogger.id', ondelete='CASCADE'))
     dev = db.relationship('Blogger')
 
