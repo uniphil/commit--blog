@@ -363,10 +363,13 @@ def configure(app, config):
         MAIL_USE_TLS            = get('MAIL_USE_TLS') != 'False',
         MAIL_USERNAME           = get('MAIL_USERNAME'),
         MAIL_PASSWORD           = get('MAIL_PASSWORD'),
-        OAUTH2_REFRESH_TOKEN_GENERATOR = True,
         USE_SESSION_FOR_NEXT    = True,
     )
     app.config['AUTHLIB_INSECURE_TRANSPORT'] = app.debug
+    app.config['OAUTH2_REFRESH_TOKEN_GENERATOR'] = True
+    app.config['OAUTH2_TOKEN_EXPIRES_IN'] = {
+        'authorization_code': 60 * 60 * 24 * 365,  # 1 year
+    }
 
     server_name = get('SERVER_NAME')
     if server_name is not None:
