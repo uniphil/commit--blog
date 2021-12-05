@@ -1,3 +1,4 @@
+import dateutil.parser
 from flask import (
     Blueprint, redirect, request, session as client_session, url_for
 )
@@ -7,7 +8,7 @@ from requests.sessions import Session
 from requests.utils import default_user_agent
 from urllib.parse import urlparse, urljoin
 
-from models import Blogger
+from models import Blogger, CommitPost
 
 
 gh = Blueprint('gh', __name__)
@@ -56,6 +57,27 @@ class GHOAuthSession(OAuth2Session):
         useragentify(self)
 
 
+def get_commit_from_api(repo, sha, blogger):
+    with gh.AppSession() as session:
+        commit_url = f'/repos/{repo.full_name}/git/commits/{sha}'
+        print(f'finding commit at {commit_url}')
+        resp = session.get(commit_url)
+
+    if resp.status_code == 404:
+        return None
+
+    assert resp.ok, 'got error from github'
+    gh_commit = resp.json()
+
+    return CommitPost(
+        hex=sha,
+        message=gh_commit['message'],
+        datetime=dateutil.parser.parse(gh_commit['author']['date']),
+        repo=repo,
+        blogger=blogger,
+    )
+
+
 @gh.record
 def init_github(state):
     state.blueprint.oauth = OAuth2Service(
@@ -72,6 +94,7 @@ def init_github(state):
         client_id=state.app.config['GITHUB_CLIENT_ID'],
         client_secret=state.app.config['GITHUB_CLIENT_SECRET'],
     )
+    state.blueprint.get_commit_from_api = get_commit_from_api
 
 
 @gh.route('/login')

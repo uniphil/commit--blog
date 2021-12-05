@@ -78,16 +78,12 @@ def query_client(client_id):
 
 
 def save_token(token, request):
-    if current_user.is_authenticated:
-        user_id = current_user.get_user_id()
-    else:
-        user_id = None
-    client = request.client
+    if not request.user:
+        abort(401, 'a blogger is required to associate a token')
     tok = OAuth2Token(
-        client_id=client.client_id,
-        blogger_id=user_id,
-        **token
-    )
+        client_id=request.client.client_id,
+        blogger=request.user,
+        **token)
     db.session.add(tok)
     db.session.commit()
 

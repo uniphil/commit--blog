@@ -10,8 +10,7 @@
 """
 
 from os import environ
-from datetime import datetime, timedelta
-import dateutil.parser
+from datetime import datetime
 from flask import (
     Flask, Blueprint, request, flash, session,
     render_template, redirect, url_for, json, abort)
@@ -22,6 +21,7 @@ from wtforms import fields, validators
 from flask_wtf import Form
 from secrets import compare_digest
 
+from api import api
 from blog import blog
 from admin import admin
 from oauth import oauth
@@ -96,30 +96,14 @@ def dashboard():
     return render_template('account.html', events=commit_events, email=email)
 
 
-def add_with_github_api(form, repo):
-    commit_url = '/repos/{repo}/git/commits/{hex}'.format(
-        repo=form.repo_name.data, hex=form.sha.data)
-
-    with gh.AppSession() as session:
-        gh_commit = session.get(commit_url).json()
-
-    commit = CommitPost(
-        hex=form.sha.data,
-        message=gh_commit['message'],
-        datetime=dateutil.parser.parse(gh_commit['author']['date']),
-        repo=repo,
-        blogger=current_user,
-    )
-    return commit
-
-
 @account.route('/add', methods=('GET', 'POST'))
 @login_required
 def add_post():
     form = CommitpostAddForm(request.args)
     if any((form.repo_name.data, form.sha.data)) and form.validate():
         repo, repo_created = Repo.get_or_create(form.repo_name.data)
-        commit = add_with_github_api(form, repo)
+        commit = gh.get_commit_from_api(repo, form.sha.data, current_user)
+        commit.repo = repo
         db.session.add(commit)
         if repo_created:
             db.session.add(repo)
@@ -391,6 +375,7 @@ def create_app(config=None):
     login_manager.init_app(app)
     db.init_app(app)
     mail.init_app(app)
+    app.register_blueprint(api, url_prefix='/api')
     app.register_blueprint(pages)
     app.register_blueprint(account)
     app.register_blueprint(oauth, url_prefix='/oauth')

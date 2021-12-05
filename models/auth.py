@@ -21,7 +21,7 @@ class OAuth2AuthorizationCode(db.Model, OAuth2AuthorizationCodeMixin):
     __tablename__ = 'oauth2_code'
 
     id = db.Column(db.Integer, primary_key=True)
-    blogger_id = db.Column(db.Integer, db.ForeignKey('blogger.id', ondelete='CASCADE'))
+    blogger_id = db.Column(db.Integer, db.ForeignKey('blogger.id', ondelete='CASCADE'), nullable=False)
     blogger = db.relationship('Blogger')
 
 
