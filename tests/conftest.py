@@ -41,17 +41,19 @@ def get_fake_github():
     def fixture(name):
         with open(os.path.join(tests_dir, f'fixtures/github/{name}.json')) as f:
             return json.load(f)
+    _json_responses = {
+        '/users/uniphil/events/public': 'get.uniphil.events',
+        '/repos/uniphil/commit--blog/git/commits/050c55865e2bb1c96bf0910488d3d6d521eb8f4d': 'get.uniphil.commit',
+    }
     class GithubFaker:
         class FakeResponse:
             def __init__(self, url):
                 self.url = url
+                self.ok = url in _json_responses
+                self.status_code = 200 if self.ok else 404
             def json(self):
-                json_responses = {
-                    '/users/uniphil/events/public': 'get.uniphil.events',
-                    '/repos/uniphil/commit--blog/git/commits/050c55865e2bb1c96bf0910488d3d6d521eb8f4d': 'get.uniphil.commit',
-                }
-                assert self.url in json_responses
-                return fixture(json_responses[self.url])
+                assert self.url in _json_responses
+                return fixture(_json_responses[self.url])
         def get(self, url):
             return self.FakeResponse(url)
     yield GithubFaker()
