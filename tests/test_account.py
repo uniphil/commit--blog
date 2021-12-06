@@ -26,8 +26,9 @@ def test_csrf_is_checked(app, app_ctx, client):
     ('/repo/hex/unpost', 401),
     ('/repo/hex/rerender', 401),
 ))
-def test_account_unauthed(client, account_path, unauth_status):
-    assert client.get(account_path).status_code == unauth_status
+def test_account_unauthed(login, gh_blogger, account_path, unauth_status):
+    with login(gh_blogger) as client:
+        client.get(account_path).status_code == unauth_status
 
 
 def test_add_commit(app_ctx, fake_github, login, gh_blogger):
