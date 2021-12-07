@@ -12,16 +12,16 @@ def post_blog(sha):
     if current_token.blogger.is_authenticated:
         blogger = current_token.blogger
     else:
-        abort(500, 'sorry, could not find the account for your access token')
+        return 'sorry, could not find the account for your access token', 500
     if origin := request.json.get('github'):
         repo = origin['repo']
     else:
-        abort(400, 'only github ssh origin is supported for now')
+        return 'only github ssh origin is supported for now', 500
 
     repo, repo_created = Repo.get_or_create(repo)
     commit = github.get_commit_from_api(repo, sha, blogger)
     if commit is None:
-        abort(400, 'commit not found on github -- perhaps you need to push first?')
+        return 'commit not found on github -- perhaps you need to push first?', 400
 
     db.session.add(commit)
     if repo_created:
@@ -30,7 +30,7 @@ def post_blog(sha):
     try:
         db.session.commit()
     except IntegrityError:
-        abort(400, 'seems like it\'s already blogged!')
+        return 'seems like it\'s already blogged!', 400
 
     post_url = url_for('blog.commit_post', _external=True,
         blogger=blogger.username, repo_name=repo.full_name, hex=sha)
@@ -43,17 +43,17 @@ def unpost_blog(sha):
     if current_token.blogger.is_authenticated:
         blogger = current_token.blogger
     else:
-        abort(500, 'sorry, could not find the account for your access token')
+        return 'sorry, could not find the account for your access token', 500
     if gh_origin := request.json.get('github'):
         repo = gh_origin['repo']
     else:
-        abort(400, 'only github ssh origin is supported for now')
+        return 'only github ssh origin is supported for now', 400
 
     commit = CommitPost.query.filter(
         CommitPost.hex==sha, Repo.full_name==repo).first_or_404()
 
     if commit.blogger is not blogger:
-        abort(403, 'can only unpost your own posts')
+        return 'can only unpost your own posts', 403
 
     db.session.delete(commit)
     db.session.commit()
