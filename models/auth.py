@@ -29,8 +29,14 @@ class OAuth2Token(db.Model, OAuth2TokenMixin):
     __tablename__ = 'oauth2_token'
 
     id = db.Column(db.Integer, primary_key=True)
+    client_id = db.Column(db.String(48), db.ForeignKey('oauth2_client.client_id', ondelete='CASCADE'))
     blogger_id = db.Column(db.Integer, db.ForeignKey('blogger.id', ondelete='CASCADE'))
+
     blogger = db.relationship('Blogger')
+    client = db.relationship('OAuth2Client')
+
+    def revoke(self):
+        self.revoked = True
 
     def is_refresh_token_active(self):
         if self.revoked:

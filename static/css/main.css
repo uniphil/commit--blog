@@ -169,6 +169,26 @@ code {
   color: #468;
 }
 
+.token {
+  background: #ded;
+  border-left: 2px solid #468;
+  font-size: 0.8rem;
+  padding: 1em;
+  margin: 1rem 0;
+}
+.token h4 {
+  font-size: 1rem;
+  font-weight: bold;
+  margin: 0 0 1rem;
+}
+.token h4 small {
+  font-size: 0.8rem;
+  font-weight: normal;
+}
+.token p:last-child {
+  margin-bottom: 0;
+}
+
 .post-body h1 {
   font-size: 1.3em;
   font-weight: bold;

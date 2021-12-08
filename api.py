@@ -1,5 +1,6 @@
 from authlib.integrations.flask_oauth2 import current_token
 from flask import Blueprint, abort, request, session, url_for
+from sqlalchemy.exc import IntegrityError
 from oauth import require_oauth
 from known_git_hosts import github
 from models import db, CommitPost, Repo

@@ -24,12 +24,13 @@ from secrets import compare_digest
 from api import api
 from blog import blog
 from admin import admin
-from oauth import oauth
+from oauth import oauth, SCOPES
 from emails import mail
 import limits
 from models import (
     db, message_parts, AnonymousUser,
     Blogger, Email, Repo, CommitPost, Task)
+from models.auth import OAuth2Token
 from known_git_hosts.github import gh
 from wtf import csrf
 
@@ -65,6 +66,11 @@ def hello():
     return render_template('hello.html')
 
 
+@pages.route('/cli')
+def cli():
+    return render_template('cli.html')
+
+
 @account.route('/account')
 @login_required
 def dashboard():
@@ -93,7 +99,12 @@ def dashboard():
                 commit_events.append(commit)
 
     email = current_user.get_email(True)
-    return render_template('account.html', events=commit_events, email=email)
+    auth_tokens = OAuth2Token.query.filter(
+        (OAuth2Token.blogger == current_user) &
+        OAuth2Token.revoked.is_(False)
+    )
+    return render_template('account.html',
+        events=commit_events, email=email, auth_tokens=auth_tokens, SCOPES=SCOPES)
 
 
 @account.route('/add', methods=('GET', 'POST'))
@@ -305,6 +316,18 @@ def rerender_preview(repo_name, hex):
         return redirect(next)
 
     return render_template('rerender-preview.html', post=commit, preview=preview)
+
+
+@account.route('/account/revoke-token', methods=('POST', ))
+@login_required
+def revoke_token():
+    token_id = request.form['token_id']
+    token = OAuth2Token.query.filter_by(id=token_id, blogger=current_user).first_or_404()
+    token.revoke()
+    db.session.add(token)
+    db.session.commit()
+    flash('Access token revoked 🚮', 'info')
+    return redirect(url_for('account.dashboard'))
 
 
 @account.route('/logout')
