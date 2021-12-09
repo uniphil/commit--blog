@@ -51,7 +51,9 @@ def unpost_blog(sha):
         return 'only github ssh origin is supported for now', 400
 
     commit = CommitPost.query.filter(
-        CommitPost.hex==sha, Repo.full_name==repo).first_or_404()
+        CommitPost.hex==sha, Repo.full_name==repo).first()
+    if commit is None:
+        return 'could not find that post -- maybe it\'s already deleted?', 404
 
     if commit.blogger is not blogger:
         return 'can only unpost your own posts', 403

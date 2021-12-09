@@ -10,7 +10,10 @@ from authlib.integrations.flask_oauth2 import (
     AuthorizationServer,
     ResourceProtector,
 )
-from authlib.integrations.sqla_oauth2 import create_bearer_token_validator
+from authlib.integrations.sqla_oauth2 import (
+    create_revocation_endpoint,
+    create_bearer_token_validator,
+)
 from authlib.oauth2 import OAuth2Error
 from authlib.oauth2.rfc6749 import grants
 from authlib.oauth2.rfc7636 import CodeChallenge
@@ -103,9 +106,9 @@ def init_oauth2(state):
     authorization.register_grant(AuthorizationCodeGrant, [CodeChallenge(required=True)])
     authorization.register_grant(RefreshTokenGrant)
 
-    # # support revocation
-    # revocation_cls = create_revocation_endpoint(db.session, OAuth2Token)
-    # authorization.register_endpoint(revocation_cls)
+    revocation_cls = create_revocation_endpoint(db.session, OAuth2Token)
+    revocation_cls.CLIENT_AUTH_METHODS = ['none']
+    authorization.register_endpoint(revocation_cls)
 
     bearer_cls = create_bearer_token_validator(db.session, OAuth2Token)
     require_oauth.register_token_validator(bearer_cls())
@@ -145,5 +148,6 @@ def issue_token():
 
 
 @oauth.route('/revoke', methods=('POST',))
+@csrf.exempt
 def revoke_token():
     return authorization.create_endpoint_response('revocation')
