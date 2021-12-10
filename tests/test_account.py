@@ -149,3 +149,29 @@ def test_add_email(app_ctx, login, gh_blogger):
         assert resp.status_code == 302, resp.data
         assert '/account' in resp.headers['location']
         assert isinstance(email.confirmed, datetime) is True
+
+
+def test_revoke_oauth(app_ctx, login, token_for, token_login, gh_blogger):
+    with login(gh_blogger) as client:
+        client.generate_csrf()
+
+        # check that the auth grant is not initially listed in account settings
+        resp = client.get('/account')
+        assert resp.status_code == 200, resp.data
+        assert b'This app can create, view, and update posts' not in resp.data
+
+        # auth grant appears after token has been created
+        token = token_for(gh_blogger)
+        resp = client.get('/account')
+        assert b'This app can create, view, and update posts' in resp.data
+
+        # submit the revocation
+        resp = client.post('/account/oauth/revoke', data={
+            'csrf_token': client.csrf_token,
+            'token_id': token.id,
+        })
+        assert resp.status_code == 302
+        resp = client.get(resp.headers['location'])
+        assert resp.status_code == 200
+        assert b'Access token revoked' in resp.data
+        assert b'This app can create, view, and update posts' not in resp.data

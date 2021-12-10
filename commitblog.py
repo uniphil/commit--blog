@@ -318,7 +318,7 @@ def rerender_preview(repo_name, hex):
     return render_template('rerender-preview.html', post=commit, preview=preview)
 
 
-@account.route('/account/revoke-token', methods=('POST', ))
+@account.route('/account/oauth/revoke', methods=('POST', ))
 @login_required
 def revoke_token():
     token_id = request.form['token_id']
