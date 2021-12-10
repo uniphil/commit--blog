@@ -3,7 +3,7 @@ from flask import Blueprint, abort, request, session, url_for
 from sqlalchemy.exc import IntegrityError
 from oauth import require_oauth
 from known_git_hosts import github
-from models import db, CommitPost, Repo
+from models import db, CommitPost, Repo, Task
 
 api = Blueprint('api', __name__)
 
@@ -27,7 +27,10 @@ def post_blog(sha):
     db.session.add(commit)
     if repo_created:
         db.session.add(repo)
-        db.session.add(Task(task='clone', details={'full_name': repo.full_name}))
+        db.session.add(Task(
+            task='clone',
+            details={'full_name': repo.full_name},
+            creator=blogger))
     try:
         db.session.commit()
     except IntegrityError:

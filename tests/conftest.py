@@ -110,11 +110,20 @@ def no_csrf(app):
 
 
 @pytest.fixture
-def gh_blogger(app_ctx):
-    u = Blogger(username='uniphil', name='Jem')
-    db.session.add(u)
-    db.session.commit()
-    return u
+def blogger(app_ctx):
+
+    def make_blogger(username, name):
+        u = Blogger(username=username, name=name)
+        db.session.add(u)
+        db.session.commit()
+        return u
+
+    return make_blogger
+
+
+@pytest.fixture
+def gh_blogger(blogger):
+    return blogger('uniphil', 'Jem')
 
 
 @pytest.fixture
@@ -164,19 +173,27 @@ def oauth_app(app_ctx):
 
 
 @pytest.fixture
-def oauth_token(oauth_app, gh_blogger):
-    token = OAuth2Token(
-        client=oauth_app,
-        token_type='Bearer',
-        access_token='asdfasdf',
-        scope='blog',
-        revoked=False,
-        issued_at=int(time.time()),
-        expires_in=int(time.time() + 86400),
-        blogger=gh_blogger)
-    db.session.add(token)
-    db.session.commit()
-    return token
+def token_for(oauth_app):
+
+    def seq(_n=[0]):
+        _n[0] += 1
+        return _n[0]
+
+    def get_new_token(blogger):
+        token = OAuth2Token(
+            client=oauth_app,
+            token_type='Bearer',
+            access_token=f'asdfasdf-{seq()}',
+            scope='blog',
+            revoked=False,
+            issued_at=int(time.time()),
+            expires_in=int(time.time() + 86400),
+            blogger=blogger)
+        db.session.add(token)
+        db.session.commit()
+        return token
+
+    return get_new_token
 
 
 @pytest.fixture
