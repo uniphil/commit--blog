@@ -1,17 +1,20 @@
 import json
 import os
 import pytest
+import time
 from contextlib import contextmanager
 from commitblog import create_app
 from flask import g, session
 from flask_login import FlaskLoginClient, login_user
 from flask_wtf.csrf import generate_csrf as wtf_generate_csrf
 from models import Blogger, db
+from models.auth import OAuth2Client, OAuth2Token
 from known_git_hosts.github import gh
 
 
 class BloggerTestClient(FlaskLoginClient):
     def __init__(self, *args, **kwargs):
+        self.oauth_token = kwargs.pop("oauth_token", None)
         super().__init__(*args, **kwargs)
         self.csrf_token = None
 
@@ -29,9 +32,15 @@ class BloggerTestClient(FlaskLoginClient):
         return self.csrf_token
 
     def open(self, *args, **kwargs):
+        if token := self.oauth_token:
+            kwargs.setdefault('headers', {})
+            kwargs['headers']['Authorization'] = f'Bearer {token.access_token}'
+
         res = super().open(*args, **kwargs)
+
         if 'csrf_token' in g:
             self.csrf_token = g.csrf_token
+
         return res
 
 
@@ -132,3 +141,50 @@ def fake_github():
             gh.AppSession = original_app_session
 
     return github
+
+
+@pytest.fixture
+def oauth_app(app_ctx):
+    client = OAuth2Client(
+        client_id='commit--cli',
+        client_id_issued_at=int(time.time()),
+        client_secret = '')
+    client.set_client_metadata({
+        'client_name': 'commit--blog cli',
+        'client_uri': 'https://commit--blog.com/cli',
+        'grant_types': ['authorization_code'],
+        'redirect_uris': ['http://localhost:33205/oauth/authorized'],
+        'response_types': ['code'],
+        'scope': 'blog',
+        'token_endpoint_auth_method': 'none',
+    })
+    db.session.add(client)
+    db.session.commit()
+    return client
+
+
+@pytest.fixture
+def oauth_token(oauth_app, gh_blogger):
+    token = OAuth2Token(
+        client=oauth_app,
+        token_type='Bearer',
+        access_token='asdfasdf',
+        scope='blog',
+        revoked=False,
+        issued_at=int(time.time()),
+        expires_in=int(time.time() + 86400),
+        blogger=gh_blogger)
+    db.session.add(token)
+    db.session.commit()
+    return token
+
+
+@pytest.fixture
+def token_login(app):
+
+    @contextmanager
+    def login_client(oauth_token):
+        with app.test_client(oauth_token=oauth_token) as c:
+            yield c
+
+    return login_client
