@@ -75,6 +75,8 @@ def app():
         'DATABASE_URL': 'sqlite://',  # in-memory db
         'SECRET_KEY': 'key for tests',
     })
+    app.config['PREFERRED_URL_SCHEME'] = 'https'
+    app.config['WTF_CSRF_SSL_STRICT'] = False
 
     with app.app_context():
         db.create_all()
@@ -112,8 +114,8 @@ def no_csrf(app):
 @pytest.fixture
 def blogger(app_ctx):
 
-    def make_blogger(username, name):
-        u = Blogger(username=username, name=name)
+    def make_blogger(username, name, **kwargs):
+        u = Blogger(username=username, name=name, **kwargs)
         db.session.add(u)
         db.session.commit()
         return u
@@ -124,6 +126,11 @@ def blogger(app_ctx):
 @pytest.fixture
 def gh_blogger(blogger):
     return blogger('uniphil', 'Jem')
+
+
+@pytest.fixture
+def admin(blogger):
+    return blogger('mod', 'Maud', admin=True)
 
 
 @pytest.fixture
