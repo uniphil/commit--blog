@@ -197,7 +197,6 @@ def token_for(oauth_app):
             access_token_selector=selector,
             access_token_validator=validator,
             scope='blog',
-            issued_at=datetime.datetime.now(),
             expires_in=3600,
             blogger=blogger)
         db.session.add(token)
