@@ -1,0 +1,8 @@
+{% extends 'client-authorize.html' %}
+
+{% block actions %}
+  <div class="buttons">
+    <a href="{{ url_for('gh.login') }}" class="button">Log in to continue</a>
+    or <a href="{{ redirect_uri }}" class="sad">cancel</a>
+  </div>
+{% endblock %}

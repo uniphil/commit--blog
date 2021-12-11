@@ -1,3 +1,4 @@
+import dateutil.parser
 from flask import (
     Blueprint, redirect, request, session as client_session, url_for
 )
@@ -7,7 +8,7 @@ from requests.sessions import Session
 from requests.utils import default_user_agent
 from urllib.parse import urlparse, urljoin
 
-from models import Blogger
+from models import Blogger, CommitPost
 
 
 gh = Blueprint('gh', __name__)
@@ -56,41 +57,73 @@ class GHOAuthSession(OAuth2Session):
         useragentify(self)
 
 
+def get_commit_from_api(repo, sha, blogger):
+    with gh.AppSession() as session:
+        commit_url = f'/repos/{repo.full_name}/git/commits/{sha}'
+        print(f'finding commit at {commit_url}')
+        resp = session.get(commit_url)
+
+    if resp.status_code == 404:
+        return None
+
+    assert resp.ok, 'got error from github'
+    gh_commit = resp.json()
+
+    return CommitPost(
+        hex=sha,
+        message=gh_commit['message'],
+        datetime=dateutil.parser.parse(gh_commit['author']['date']),
+        repo=repo,
+        blogger=blogger,
+    )
+
+
 @gh.record
-def setup_github(state):
-    gh.BASE_URL = 'https://api.github.com/'
-    gh.oauth = OAuth2Service(
+def init_github(state):
+    state.blueprint.oauth = OAuth2Service(
         name='github',
-        base_url=gh.BASE_URL,
+        base_url='https://api.github.com/',
         authorize_url='https://github.com/login/oauth/authorize',
         access_token_url='https://github.com/login/oauth/access_token',
         client_id=state.app.config['GITHUB_CLIENT_ID'],
         client_secret=state.app.config['GITHUB_CLIENT_SECRET'],
         session_obj=GHOAuthSession,
     )
-    gh.AppSession = lambda: GHAppSession(
-        gh.BASE_URL,
+    state.blueprint.AppSession = lambda: GHAppSession(
+        'https://api.github.com/',
         client_id=state.app.config['GITHUB_CLIENT_ID'],
         client_secret=state.app.config['GITHUB_CLIENT_SECRET'],
     )
+    state.blueprint.get_commit_from_api = get_commit_from_api
 
 
 @gh.route('/login')
 def login():
-    referrer = request.referrer
-    if referrer is None or \
-        referrer.startswith(url_for('pages.hello', _external=True)):
-        client_session['after_login_redirect'] = None
-    else:
-        client_session['after_login_redirect'] = referrer
+    next = client_session.get('after_login_redirect', None)
+
+    print(f'NEXT1??? {next=}')
+
+    # referrer = request.referrer
+    # if referrer is None or \
+    #     referrer.startswith(url_for('pages.hello', _external=True)):
+    #     client_session['after_login_redirect'] = None
+    # else:
+    #     client_session['after_login_redirect'] = referrer
     auth_uri = gh.oauth.get_authorize_url()
+
+    next = client_session.get('after_login_redirect', None)
+
+    print(f'NEXT2??? {next=}')
+
     return redirect(auth_uri)
 
 
 @gh.route('/authorized')
 def authorized():
     # final stage of oauth login
-    next = client_session.pop('after_login_redirect', None)
+    next = client_session.get('after_login_redirect', None)
+
+    print(f'NEXT?3?? {next=}')
 
     if 'code' not in request.args:
         return redirect(next or url_for('pages.hello', auth='sadface'))

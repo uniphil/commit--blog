@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+  <header>
+    <h1>blog --client-apps</h1>
+  </header>
+
+  <h2>Add new client</h2>
+  <form method="post" action="{{ url_for('admin.clients') }}">
+    {% for field in form %}
+      {% if field.name == 'csrf_token' %}
+        {{ field }}
+      {% else %}
+        <div>
+          {% for error in field.errors %}
+            <p>{{ error }}</p>
+          {% endfor %}
+          {{ field.label }}
+          {{ field }}
+        </div>
+      {% endif %}
+    {% endfor %}
+    <div>
+      <button type="submit">Create client</button>
+    </div>
+  </form>
+
+  <h3>Clients</h3>
+  {% for client in clients %}
+    <p>client... {{ client }}</p>
+  {% else %}
+    <p><em>no clients registered</em></p>
+  {% endfor %}
+
+
+{% endblock %}

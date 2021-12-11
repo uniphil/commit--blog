@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h1>Add <code>git blog</code> to your terminal</h1>
+  <p><em>Extremely-alpha but apparently working! ✨</em></p>
+  <p>You can try out <a href="https://crates.io/crates/commit--cli" target="_blank">commit--cli</a> to add <code>blog</code> as a git subcommand by typing the following into your terminal:</p>
+  <pre>
+    $ cargo install commit--cli
+  </pre>
+  <p>Once you have it, log in and start blogging commits easy as</p>
+  <pre>
+    $ git commit -m 'Fix! all the bugs!'
+    $ git push && <strong>git blog post</strong>
+  </pre>
+  <p><strong>Requires <a href="https://doc.rust-lang.org/cargo/getting-started/installation.html" target="_blank">rust/cargo</a> to be installed.</strong> More installation methods will be added when it's ready.</p>
+{% endblock %}

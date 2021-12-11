@@ -82,6 +82,25 @@
     <p><a class="button" href="{{ url_for('account.add_email') }}">Add an email address</a></p>
   {% endif %}
 
+  <h3>Authorized apps</h3>
+  {% for token in auth_tokens %}
+    <div class="token">
+      <h4>
+        {{ token.client.client_name }}
+        <small><em>Granted {{ token.issued_at }} (unix time 😭)</em></small>
+        <form class="inline" method="post" action="{{ url_for('account.revoke_token') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <input type="hidden" name="token_id" value="{{ token.id }}" />
+          <small><button type="submit" class="sad">Revoke</button></small>
+        </form>
+      </h4>
+      <p>This app can {{ SCOPES[token.scope]|lower }} (<code>{{ token.scope }}</code> permission)</p>
+    </div>
+  {% else %}
+    <p><em>You haven't granted any applications access</em></p>
+    <p>Try the <a href="{{ url_for('pages.cli') }}">commit--blog cli</a> to blog commits where you write them</p>
+  {% endfor %}
+
   <h3>Delete account</h3>
   <p>Done with your blog? You can delete it if you want, and start over any time :)</p>
   <p>Heads up, <strong>this action cannot be undone.</strong></p>
@@ -89,6 +108,7 @@
       onsubmit="return confirm('Delete your account? This action cannot be undone!');">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
     <p><button type="submit" class="sad" href="{{ url_for('gh.delete_account') }}">Delete Account 💣</button></p>
+    <p><small>We do keep 30 days of database backups, so there is a short window where your account could potentially be recovered if you ask nicely :)</small></p>
   </form>
 
 {% endblock %}

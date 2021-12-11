@@ -65,6 +65,10 @@ class Blogger(db.Model, UserMixin):
         """Handle casing issues with domains"""
         return cls.query.filter(username.lower() == func.lower(cls.username)).first()
 
+    def get_user_id(self):
+        """get user id for oauth2"""
+        return self.id
+
     def is_blogger(self, blogger):
         return (self == blogger)
 

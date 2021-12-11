@@ -37,14 +37,35 @@ def reinit_db():
 
 
 @manager.command
-def list_blogs():
-    from sqlalchemy import func
+def make_admin(username):
     from commitblog import db, Blogger
-    bloggers = Blogger.query \
-                    .order_by(db.session.query(
-                        func.count(Blogger.commit_posts)))
-    for blogger in bloggers.all():
-        print('{: 3d} {}'.format(len(blogger.commit_posts), blogger.username))
+    hopeful = Blogger.query.filter(Blogger.username == username).first()
+    assert hopeful is not None, f'no blogger found for username "{username}"'
+    hopeful.admin = True
+    db.session.add(hopeful)
+    db.session.commit()
+
+
+@manager.command
+def register_cli_client():
+    from time import time
+    from commitblog import db
+    from models.auth import OAuth2Client
+    client = OAuth2Client(
+        client_id='commit--cli',
+        client_id_issued_at=int(time()),
+        client_secret = '')
+    client.set_client_metadata({
+        'client_name': 'commit--blog cli',
+        'client_uri': 'https://commit--blog.com/cli',
+        'grant_types': ['authorization_code'],
+        'redirect_uris': ['http://localhost:33205/oauth/authorized'],
+        'response_types': ['code'],
+        'scope': 'blog',
+        'token_endpoint_auth_method': 'none',
+    })
+    db.session.add(client)
+    db.session.commit()
 
 
 @manager.command

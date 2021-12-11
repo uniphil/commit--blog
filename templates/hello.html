@@ -9,7 +9,7 @@
       <small>
         {% if current_user.is_authenticated %}
           hi {{ current_user.username }}:
-          <a title="Manage your blog" href="{{ url_for('blog.list', blogger=current_user.username) }}">curate your blog</a>;
+          <a title="Manage your blog" href="{{ url_for('account.dashboard') }}">curate your blog</a>;
           <a title="Log out" href="{{ url_for('account.logout') }}">log out</a>
         {% else %}
           Blog your commit messages!

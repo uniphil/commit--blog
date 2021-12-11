@@ -1,0 +1,33 @@
+{% extends 'base-interstitial.html' %}
+
+{% block content %}
+
+  <h1>commit --blog --grant-access</h1>
+
+  <div class="auth-confirm">
+    <h2>Allow "{{ grant.client.client_name }}" access?</h2>
+    <div class="scope">
+      <p><strong>{{ grant.client.client_name }}</strong> will be able to:</p>
+      <ul>
+        {% for scope in grant.request.scope.split(' ') %}
+          <li>{{ scope_descriptions[grant.request.scope] }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    {% block actions %}
+      <form method="post" action="" class="buttons">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+        <button name="authorize" type="submit">Authorize</button>
+        <a href="{{ redirect_uri }}" class="button sad">cancel</a>
+      </form>
+      <div class="current-login">
+        <p>
+          You are logged in as {{ current_user.display_name }} (<code>{{current_user.username }}</code>).<br/>
+          <small><em>Not you? <a href="{{ url_for('account.logout', next=url_for('oauth.auth', **request.args)) }}">switch accounts</a></em></small>
+        </p>
+      </div>
+    {% endblock %}
+  </div>
+
+{% endblock %}

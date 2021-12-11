@@ -90,6 +90,9 @@ a.button {
 a.button:hover {
   text-decoration: none;
 }
+:not(.button).sad {
+  color: #846;
+}
 
 table.recent-events {
   font-size: 0.8em;
@@ -166,6 +169,26 @@ code {
   color: #468;
 }
 
+.token {
+  background: #ded;
+  border-left: 2px solid #468;
+  font-size: 0.8rem;
+  padding: 1em;
+  margin: 1rem 0;
+}
+.token h4 {
+  font-size: 1rem;
+  font-weight: bold;
+  margin: 0 0 1rem;
+}
+.token h4 small {
+  font-size: 0.8rem;
+  font-weight: normal;
+}
+.token p:last-child {
+  margin-bottom: 0;
+}
+
 .post-body h1 {
   font-size: 1.3em;
   font-weight: bold;
@@ -178,6 +201,30 @@ code {
 .post-body h2:before {
   content: "";
   display: none;
+}
+
+.auth-confirm {
+  background:  #fff;
+  border: 2px solid #468;
+  max-width: 24em;
+  margin: 5em auto 2em;
+}
+.auth-confirm h2 {
+  margin: 2rem 2rem 1rem;
+}
+.auth-confirm .scope {
+  margin: 2rem 2rem;
+}
+.auth-confirm .buttons {
+  display: block;
+  margin: 2rem;
+}
+.auth-confirm .current-login {
+  background: #cde;
+  padding: 1rem 2rem;
+}
+.auth-confirm .current-login p {
+  margin: 0;
 }
 
 .error-page {
