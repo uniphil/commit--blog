@@ -4,6 +4,8 @@ from os import urandom
 import urllib.parse
 
 
+# todo test: can an authorization code be used again to make another token? (hopefully no)
+
 def test_oauth_flow_anonymous(oauth_app, client):
     state = '31zy-J0AN1s2fQ73uTHLtQ'
     code_challenge = 'ElnII37xeSswIXzCQ8eINgEe55WxY1dvp0KU9xlBV8I'

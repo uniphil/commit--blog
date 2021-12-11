@@ -21,8 +21,8 @@ def test_delete_non_existent(token_for, gh_blogger, token_login):
 def test_add_commit(app_ctx, fake_github, token_for, gh_blogger, token_login):
     sha = '050c55865e2bb1c96bf0910488d3d6d521eb8f4d'
     repo = 'uniphil/commit--blog'
-    token = token_for(gh_blogger)
-    with fake_github(), token_login(token) as client:
+    (token, bearer) = token_for(gh_blogger)
+    with fake_github(), token_login((token, bearer)) as client:
         resp = client.put(f'/api/blog/{sha}', json={
             'github': {'repo': repo},
         })
@@ -66,9 +66,8 @@ def test_cannot_delete_others_commits(
     sha = '050c55865e2bb1c96bf0910488d3d6d521eb8f4d'
     repo = 'uniphil/commit--blog'
 
-    author_token = token_for(gh_blogger)
-
     # post as gh blogger
+    author_token = token_for(gh_blogger)
     with fake_github(), token_login(author_token) as client:
         resp = client.put(f'/api/blog/{sha}', json={
             'github': {'repo': repo},

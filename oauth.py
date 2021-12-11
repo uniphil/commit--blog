@@ -1,22 +1,25 @@
+from base64 import urlsafe_b64encode
+from datetime import datetime
 from flask import (
     Blueprint, abort, current_app, redirect, render_template, request,
     session, url_for
 )
 from flask_login import current_user, login_required
 from flask_wtf import FlaskForm
+from hashlib import sha256
+from hmac import compare_digest
+from secrets import token_urlsafe
 from wtforms import fields
 from models import Blogger, CommitPost, Task
 from authlib.integrations.flask_oauth2 import (
-    AuthorizationServer,
+    AuthorizationServer as AuthlibFlaskAuthorizationServer,
     ResourceProtector,
-)
-from authlib.integrations.sqla_oauth2 import (
-    create_revocation_endpoint,
-    create_bearer_token_validator,
 )
 from authlib.oauth2 import OAuth2Error
 from authlib.oauth2.rfc6749 import grants
+from authlib.oauth2.rfc6750 import BearerTokenValidator as _BearerTokenValidator
 from authlib.oauth2.rfc7636 import CodeChallenge
+from authlib.oauth2.rfc7009 import RevocationEndpoint
 from models import db, Blogger
 from models.auth import OAuth2Client, OAuth2AuthorizationCode, OAuth2Token
 from wtf import csrf
@@ -26,6 +29,49 @@ oauth = Blueprint('oauth', __name__)
 SCOPES = {
     'blog': 'Create, view, and update posts',
 }
+
+
+# see commitblog.configure / config['OAUTH2_ACCESS_TOKEN_GENERATOR']
+def access_token_generator(_client, grant_type, _user, _scope):
+    if grant_type == 'authorization_code':
+        return token_urlsafe(64)
+    assert False, f'unsupported grant type: {grant_type}'
+
+
+def token_db_parts(token_string):
+    selector, validator = token_string[:42], token_string[42:]
+    hashed_validator = urlsafe_b64encode(sha256(validator.encode()).digest())
+    return selector, hashed_validator
+
+
+class AuthorizationServer(AuthlibFlaskAuthorizationServer):
+    def __init__(self):
+        save_qc = self.query_client
+        save_st = self.save_token
+        super().__init__()
+        self.query_client = save_qc  #als fl ajslkfja slkdfjla ksdjfl
+        self.save_token = save_st
+
+    def query_client(self, client_id):
+        return OAuth2Client.query.filter_by(client_id=client_id).first()
+
+    def save_token(self, token, request):
+        if not request.user:
+            abort(401, 'a blogger is required to associate a token')
+
+        db_token = dict(token)
+
+        access_token = db_token.pop('access_token')
+        selector, hashed_validator = token_db_parts(access_token)
+
+        tok = OAuth2Token(
+            client_id=request.client.client_id,
+            blogger=request.user,
+            access_token_selector=selector,
+            access_token_validator=hashed_validator,
+            **db_token)
+        db.session.add(tok)
+        db.session.commit()
 
 
 class AuthorizationCodeGrant(grants.AuthorizationCodeGrant):
@@ -58,43 +104,52 @@ class AuthorizationCodeGrant(grants.AuthorizationCodeGrant):
         db.session.commit()
 
     def authenticate_user(self, authorization_code):
-        return Blogger.query.get(authorization_code.blogger_id)
+        return authorization_code.blogger
 
 
-class RefreshTokenGrant(grants.RefreshTokenGrant):
-    def authenticate_refresh_token(self, refresh_token):
-        token = OAuth2Token.query.filter_by(refresh_token=refresh_token).first()
-        if token and token.is_refresh_token_active():
-            return token
+class BearerTokenValidator(_BearerTokenValidator):
+    def __init__(self, session, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.session = session
 
-    def authenticate_user(self, credential):
-        return Blogger.query.get(credential.blogger_id)
+    def authenticate_token(self, token_string):
+        selector, hashed_validator = token_db_parts(token_string)
+        if token := OAuth2Token.query.filter_by(
+            access_token_selector=selector
+        ).first():
+            if compare_digest(hashed_validator, token.access_token_validator):
+                return token
 
-    def revoke_old_credential(self, credential):
-        credential.revoked = True
-        db.session.add(credential)
-        db.session.commit()
+        return OAuth2Token.query.filter_by(access_token=token_string).first()
 
+    def request_invalid(self, request):
+        return False
 
-def query_client(client_id):
-    return OAuth2Client.query.filter_by(client_id=client_id).first()
-
-
-def save_token(token, request):
-    if not request.user:
-        abort(401, 'a blogger is required to associate a token')
-    tok = OAuth2Token(
-        client_id=request.client.client_id,
-        blogger=request.user,
-        **token)
-    db.session.add(tok)
-    db.session.commit()
+    def token_revoked(self, token):
+        return token.is_revoked()
 
 
-authorization = AuthorizationServer(
-    query_client=query_client,
-    save_token=save_token,
-)
+def create_revocation_endpoint(session):
+    class _RevocationEndpoint(RevocationEndpoint):
+        def query_token(self, token_string, _token_type_hint, client):
+            selector, validator = token_db_parts(token_string)
+            if token := OAuth2Token.query.filter_by(
+                client=client,
+                access_token_selector=selector,
+                access_token_revoked_at=None,
+            ).first():
+                if compare_digest(validator, token.access_token_validator):
+                    return token
+
+        def revoke_token(self, token):
+            token.access_token_revoked_at = datetime.now()
+            session.add(token)
+            session.commit()
+
+    return _RevocationEndpoint
+
+
+authorization = AuthorizationServer()
 require_oauth = ResourceProtector()
 
 
@@ -103,15 +158,13 @@ def init_oauth2(state):
     app = state.app
     authorization.init_app(app)
 
-    authorization.register_grant(AuthorizationCodeGrant, [CodeChallenge(required=True)])
-    authorization.register_grant(RefreshTokenGrant)
-
-    revocation_cls = create_revocation_endpoint(db.session, OAuth2Token)
+    revocation_cls = create_revocation_endpoint(db.session)
     revocation_cls.CLIENT_AUTH_METHODS = ['none']
+
+    authorization.register_grant(AuthorizationCodeGrant, [CodeChallenge(required=True)])
     authorization.register_endpoint(revocation_cls)
 
-    bearer_cls = create_bearer_token_validator(db.session, OAuth2Token)
-    require_oauth.register_token_validator(bearer_cls())
+    require_oauth.register_token_validator(BearerTokenValidator(db.session))
 
 
 @oauth.route('/auth', methods=('GET', 'POST'))

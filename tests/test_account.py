@@ -161,7 +161,7 @@ def test_revoke_oauth(app_ctx, login, token_for, token_login, gh_blogger):
         assert b'This app can create, view, and update posts' not in resp.data
 
         # auth grant appears after token has been created
-        token = token_for(gh_blogger)
+        token, _token_string = token_for(gh_blogger)
         resp = client.get('/account')
         assert b'This app can create, view, and update posts' in resp.data
 

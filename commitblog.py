@@ -101,7 +101,7 @@ def dashboard():
     email = current_user.get_email(True)
     auth_tokens = OAuth2Token.query.filter(
         (OAuth2Token.blogger == current_user) &
-        OAuth2Token.revoked.is_(False)
+        OAuth2Token.access_token_revoked_at.is_(None)
     )
     return render_template('account.html',
         events=commit_events, email=email, auth_tokens=auth_tokens, SCOPES=SCOPES)
@@ -373,6 +373,7 @@ def configure(app, config):
         USE_SESSION_FOR_NEXT    = True,
     )
     app.config['AUTHLIB_INSECURE_TRANSPORT'] = app.debug
+    app.config['OAUTH2_ACCESS_TOKEN_GENERATOR'] = 'oauth.access_token_generator'
     app.config['OAUTH2_REFRESH_TOKEN_GENERATOR'] = True
     app.config['OAUTH2_TOKEN_EXPIRES_IN'] = {
         'authorization_code': 60 * 60 * 24 * 365,  # 1 year

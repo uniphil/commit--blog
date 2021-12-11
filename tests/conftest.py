@@ -1,3 +1,4 @@
+import datetime
 import json
 import os
 import pytest
@@ -9,12 +10,13 @@ from flask_login import FlaskLoginClient, login_user
 from flask_wtf.csrf import generate_csrf as wtf_generate_csrf
 from models import Blogger, db
 from models.auth import OAuth2Client, OAuth2Token
+from oauth import token_db_parts
 from known_git_hosts.github import gh
 
 
 class BloggerTestClient(FlaskLoginClient):
     def __init__(self, *args, **kwargs):
-        self.oauth_token = kwargs.pop("oauth_token", None)
+        self.bearer_token = kwargs.pop("bearer_token", None)
         super().__init__(*args, **kwargs)
         self.csrf_token = None
 
@@ -32,9 +34,9 @@ class BloggerTestClient(FlaskLoginClient):
         return self.csrf_token
 
     def open(self, *args, **kwargs):
-        if token := self.oauth_token:
+        if token := self.bearer_token:
             kwargs.setdefault('headers', {})
-            kwargs['headers']['Authorization'] = f'Bearer {token.access_token}'
+            kwargs['headers']['Authorization'] = f'Bearer {token}'
 
         res = super().open(*args, **kwargs)
 
@@ -187,18 +189,20 @@ def token_for(oauth_app):
         return _n[0]
 
     def get_new_token(blogger):
+        token_string = f'asdfasdf-asdf-{seq()}' * 5
+        selector, validator = token_db_parts(token_string)
         token = OAuth2Token(
             client=oauth_app,
             token_type='Bearer',
-            access_token=f'asdfasdf-{seq()}',
+            access_token_selector=selector,
+            access_token_validator=validator,
             scope='blog',
-            revoked=False,
-            issued_at=int(time.time()),
-            expires_in=int(time.time() + 86400),
+            issued_at=datetime.datetime.now(),
+            expires_in=3600,
             blogger=blogger)
         db.session.add(token)
         db.session.commit()
-        return token
+        return token, token_string
 
     return get_new_token
 
@@ -207,8 +211,9 @@ def token_for(oauth_app):
 def token_login(app):
 
     @contextmanager
-    def login_client(oauth_token):
-        with app.test_client(oauth_token=oauth_token) as c:
+    def login_client(token_stuff):
+        _token, token_string = token_stuff
+        with app.test_client(bearer_token=token_string) as c:
             yield c
 
     return login_client
