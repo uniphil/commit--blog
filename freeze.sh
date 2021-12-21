@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -eu
+set -euo pipefail
 msg() {
     word="${1-}"; shift
     case "$word" in
@@ -39,7 +39,7 @@ venv.freezing/bin/pip freeze > requirements.freezing.txt
 
 msg Clean system packages from requirements.freezing.txt
 sed -e '/^\s*$/d' -e '/^#/d' requirements.system.txt \
-    | while read dep; do sed -e "/^$dep/d" -i '' requirements.freezing.txt; done
+    | while read dep; do sed -i'' -e "/^$dep/d" requirements.freezing.txt; done
 
 msg Clean up venv.freezing
 rm -fr venv.freezing/
