@@ -1,0 +1,2 @@
+# fails to build on openbsd (both newer rustc and older c/openssl). use python3-cryptography via pkg_add.
+cryptography
