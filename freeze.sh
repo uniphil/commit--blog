@@ -37,6 +37,10 @@ venv.freezing/bin/pip --disable-pip-version-check install -qr requirements.thawe
 msg Freeze packages in venv.freezing to requirements.freezing.txt
 venv.freezing/bin/pip freeze > requirements.freezing.txt
 
+msg Clean system packages from requirements.freezing.txt
+sed -e '/^\s*$/d' -e '/^#/d' requirements.system.txt \
+    | while read dep; do sed -e "/^$dep/d" -i '' requirements.freezing.txt; done
+
 msg Clean up venv.freezing
 rm -fr venv.freezing/
 
