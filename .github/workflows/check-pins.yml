@@ -3,7 +3,7 @@ name: Check for third-party dependency updates
 on:
   workflow_dispatch:  # allow manually running, mostly for testing changes to the freeze script
   schedule:
-    - cron: '0 0 */3 * *'  # check every three days
+    - cron: '0 0 4 * *'  # monthly on the fourth, for some reason
 
 jobs:
   refreeze:
