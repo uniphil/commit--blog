@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -eu  # no pipefail: diff exits 1 whenever the files don't match
 msg() {
     word="${1-}"; shift
     case "$word" in
