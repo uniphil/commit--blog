@@ -24,9 +24,11 @@
         </nav>
       {% endblock %}
 
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
+      {% with messages = get_flashed_messages(with_categories=true),
+              notice = "Back online: commit--blog suffered disk corruption after a power cycle. No data was lost, and if you can read this, we're now back online! There may be some additional downtime in the next few days for maintenance on the new server." %}
+        {% if messages or notice %}
           <ul class="messages">
+              <li class="message message-notice">{{ notice }}</li>
             {% for category, message in messages %}
               <li class="message message-{{ category }}">{{ message }}</li>
             {% endfor %}
