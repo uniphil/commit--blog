@@ -25,7 +25,7 @@ iniconfig==1.1.1
 itsdangerous==1.1.0
 Jinja2==2.11.3
 Markdown==3.3.6
-MarkupSafe==2.1.1
+MarkupSafe==2.0.1
 mdx-breakless-lists==1.0.1
 -e git+https://github.com/uniphil/github-links.git@d6a74287d8bc3b5046cf96a9324a438337edcdae#egg=mdx_gh_links
 newrelic==6.2.0.156

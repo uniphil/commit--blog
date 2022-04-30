@@ -12,6 +12,7 @@ Flask-WTF~=0.14.3
 gevent~=21.1.2
 gunicorn~=20.1.0
 markdown~=3.3.4
+markupsafe~=2.0.1  # https://github.com/pallets/markupsafe/issues/282
 mdx-breakless-lists~=1.0.1
 -e git+https://github.com/uniphil/github-links.git@d6a74287d8bc3b5046cf96a9324a438337edcdae#egg=mdx_gh_links
 newrelic~=6.2.0.156
